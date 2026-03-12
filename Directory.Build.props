@@ -1,0 +1,35 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+    <PropertyGroup>
+        <Authors>Fredrik Ahlman</Authors>
+        <Company>Base16 Consulting AB</Company>
+        <Copyright>Copyright © Base16 Consulting AB</Copyright>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <Nullable>enable</Nullable>
+        <LangVersion>latest</LangVersion>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <!-- IDE#### only runs during build if this is true -->
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+        <!-- Enables IDE-style rules during dotnet build -->
+        <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+
+        <!-- Treats all warnings as errors to ensure build failure -->
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+
+        <!-- CS1591: Missing XML comment — not useful for this project -->
+        <NoWarn>CS1591</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="CSharpier.MsBuild" Version="1.2.6">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
+
+</Project>

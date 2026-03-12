@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path=".gitignore" />
+    <File Path="Directory.Build.props" />
+  </Folder>
+  <Project Path="Source/Base16.ErrGen.Tests/Base16.ErrGen.Tests.csproj" />
+  <Project Path="Source/Base16.ErrGen/Base16.ErrGen.csproj" />
+</Solution>

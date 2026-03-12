@@ -1,0 +1,57 @@
+root = true
+
+[*.{config,csproj,props,slnx,targets,xaml,xml}]
+indent_style = space
+indent_size = 2
+trim_trailing_whitespace = true
+insert_final_newline = true
+max_line_length = 100
+
+[*.cs]
+indent_style = space
+indent_size = 4
+encoding = utf-8-bom
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+dotnet_diagnostic.IDE0003.severity = warning # Remove this or Me qualification
+dotnet_diagnostic.IDE0004.severity = warning # Remove unnecessary cast
+dotnet_diagnostic.IDE0005.severity = warning # Remove unnecessary using directives
+dotnet_diagnostic.IDE0007.severity = warning # Use var instead of explicit type
+dotnet_diagnostic.IDE0010.severity = warning # Add missing cases to switch statement
+dotnet_diagnostic.IDE0021.severity = warning # Use expression body for constructors
+dotnet_diagnostic.IDE0022.severity = warning # Use expression body for methods
+dotnet_diagnostic.IDE0023.severity = warning # Use expression body for conversion operators
+dotnet_diagnostic.IDE0024.severity = warning # Use expression body for operators
+dotnet_diagnostic.IDE0029.severity = warning # Null check can be simplified (ternary conditional check)
+dotnet_diagnostic.IDE0030.severity = warning # Null check can be simplified (nullable ternary conditional check)
+dotnet_diagnostic.IDE0035.severity = warning # Remove unreachable code
+dotnet_diagnostic.IDE0041.severity = warning # Use 'is null' check
+dotnet_diagnostic.IDE0044.severity = warning # Add readonly modifier
+dotnet_diagnostic.IDE0051.severity = warning # Remove unused private member
+dotnet_diagnostic.IDE0052.severity = warning # Remove unread private member
+dotnet_diagnostic.IDE0052.severity = warning # Remove unread private member
+dotnet_diagnostic.IDE0059.severity = warning # Remove unnecessary value assignment
+dotnet_diagnostic.IDE0060.severity = warning # Remove unused parameter
+dotnet_diagnostic.IDE0066.severity = warning # Use switch expression
+dotnet_diagnostic.IDE0070.severity = warning # Use 'System.HashCode.Combine'
+dotnet_diagnostic.IDE0071.severity = warning # Simplify interpolation
+dotnet_diagnostic.IDE0072.severity = warning # Add missing cases to switch expression
+dotnet_diagnostic.IDE0079.severity = warning # Remove unnecessary suppression
+dotnet_diagnostic.IDE0082.severity = warning # Convert typeof to nameof
+dotnet_diagnostic.IDE0083.severity = warning # Use pattern matching (not operator)
+dotnet_diagnostic.IDE0130.severity = warning # Namespace does not match folder structure
+dotnet_diagnostic.IDE0161.severity = warning # Use file-scoped namespace
+dotnet_diagnostic.IDE0211.severity = warning # Convert to 'Program.Main' style program
+dotnet_diagnostic.IDE0241.severity = warning # Nullable directive is unnecessary
+dotnet_diagnostic.IDE0250.severity = warning # Struct can be made 'readonly'
+dotnet_diagnostic.IDE0280.severity = warning # Use 'nameof'
+dotnet_diagnostic.IDE0330.severity = warning # Prefer 'System.Threading.Lock'
+dotnet_diagnostic.IDE0340.severity = warning # Use unbound generic type
+dotnet_diagnostic.IDE0370.severity = warning # Remove unnecessary suppression
+dotnet_diagnostic.IDE0380.severity = warning # Remove unnecessary unsafe modifier
+dotnet_diagnostic.IDE1005.severity = warning # Use conditional delegate call
+
+# Use CLR types
+dotnet_style_predefined_type_for_locals_parameters_members = false:warning # Prefer CLR names for locals, parameters, and members
+dotnet_style_predefined_type_for_member_access = false:warning # Prefer CLR names for member access (e.g., String.Empty instead of string.Empty)

@@ -1,0 +1,9 @@
+# Visual Studio
+obj/
+bin/
+.vs/
+TestResults/
+*.user
+
+# VsCode
+.vscode/
