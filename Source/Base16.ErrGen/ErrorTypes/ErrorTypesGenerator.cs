@@ -49,9 +49,7 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
 
         var errorTypes = context.SyntaxProvider.ForAttributeWithMetadataName(
             ErrorAttributeName,
-            predicate: (node, _) =>
-                node is RecordDeclarationSyntax record
-                && record.ClassOrStructKeyword.ValueText == "struct",
+            predicate: (node, _) => node is RecordDeclarationSyntax,
             transform: (ctx, _) => (INamedTypeSymbol)ctx.TargetSymbol
         );
 
@@ -74,13 +72,15 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
 
         var cb = CSharpCodeBuilder.NewFile();
 
+        var recordType = errorType.TypeKind == TypeKind.Struct ? "record struct" : "record";
+
         cb.AppendLines(
             $"""
             using System;
 
             namespace {errorType.ContainingNamespace.ToDisplayString()};
 
-            {accessability} partial record struct {errorType.Name}
+            {accessability} partial {recordType} {errorType.Name}
             """
         );
 
@@ -94,10 +94,25 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
 
         using (cb.PushScope())
         {
-            cb.AppendLine("public String Message { get; private set; }");
+            cb.AppendLine("public String Message { get; private set; } = default!;");
+            cb.AppendLine();
+            var templates = errorTemplates
+                .SelectMany(x => x.Parts)
+                .OfType<StringTemplateArgumentPart>()
+                .DistinctBy(x => x.Name)
+                .ToList();
+            foreach (var template in templates)
+            {
+                cb.AppendLine(
+                    $"public {template.Type ?? "Object?"} {template.Name} {{ get; private set; }} = default!;"
+                );
+                cb.AppendLine();
+            }
+
+            cb.AppendLine($"public {errorType.Name}() {{ }}");
             cb.AppendLine();
 
-            cb.AppendLine($"private {errorType.Name}(String message)");
+            cb.AppendLine($"public {errorType.Name}(String message)");
             using (cb.PushScope())
                 cb.AppendLine("Message = message;");
 
@@ -111,29 +126,35 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
                 var namePart = String.Join("And", arguments.Select(x => x.Name));
                 var args = String.Join(
                     ", ",
-                    arguments.Select(x => $"{x.Type ?? "Object"}? {x.Name.ToCamelCase()}")
+                    arguments.Select(x => $"{x.Type ?? "Object?"} {x.Name.ToCamelCase()}")
                 );
 
                 cb.AppendLine();
                 cb.AppendLine($"public static {errorType.Name} From{namePart}({args})");
                 using (cb.PushScope())
                 {
-                    cb.AppendLine("return new(String.Concat(");
-                    foreach (var templatePart in template.Parts)
+                    cb.AppendLine($"return new {errorType.Name}");
+                    using (cb.PushScopeExpression())
                     {
-                        var isLast = templatePart == template.Parts.Last();
-                        var str = templatePart switch
+                        cb.AppendLine($"Message = String.Concat(");
+                        foreach (var templatePart in template.Parts)
                         {
-                            StringTemplateLiteralPart part => $"\"{part.Value}\"",
-                            StringTemplateArgumentPart part => $"{part.Name.ToCamelCase()}",
-                            _ => throw new NotSupportedException(
-                                $"Template part of type '{templatePart.GetType().Name}' is not supported."
-                            ),
-                        };
+                            var isLast = templatePart == template.Parts.Last();
+                            var str = templatePart switch
+                            {
+                                StringTemplateLiteralPart part => $"\"{part.Value}\"",
+                                StringTemplateArgumentPart part => $"{part.Name.ToCamelCase()}",
+                                _ => throw new NotSupportedException(
+                                    $"Template part of type '{templatePart.GetType().Name}' is not supported."
+                                ),
+                            };
 
-                        cb.AppendLineIndented($"{str}{(isLast ? "" : ",")}");
+                            cb.AppendLineIndented($"{str}{(isLast ? "" : ",")}");
+                        }
+                        cb.AppendLine($"),");
+                        foreach (var argument in arguments)
+                            cb.AppendLine($"{argument.Name} = {argument.Name.ToCamelCase()},");
                     }
-                    cb.AppendLine($"));");
                 }
             }
         }

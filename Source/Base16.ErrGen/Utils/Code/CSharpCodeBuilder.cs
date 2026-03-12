@@ -27,9 +27,9 @@ internal sealed class CSharpCodeBuilder : CodeBuilder
         });
     }
 
-    public IDisposable PushScopeExpression()
+    public IDisposable PushScopeExpression(String? prefix = null)
     {
-        AppendLine("{");
+        AppendLine($"{prefix}{{");
         var disposeAction = PushIndent();
         return new DisposeAction(() =>
         {
