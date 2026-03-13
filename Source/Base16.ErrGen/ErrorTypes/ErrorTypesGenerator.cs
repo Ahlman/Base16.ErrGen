@@ -274,7 +274,9 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
 
         using (cb.PushScope())
         {
-            cb.AppendLine("public String Message { get; private set; } = default!;");
+            var skipMessage = baseTypeInfo?.HasMessageProperty == true;
+            if (!skipMessage)
+                cb.AppendLine("public String Message { get; private set; } = default!;");
             cb.AppendLine();
             var templates = errorTemplates
                 .SelectMany(x => x.Parts)
