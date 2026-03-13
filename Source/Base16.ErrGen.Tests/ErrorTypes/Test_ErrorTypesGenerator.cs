@@ -215,6 +215,56 @@ public class Test_ErrorTypesGenerator
     }
 
     [Fact]
+    public void Generates_ErrorBaseTypeAttribute()
+    {
+        var source = "";
+        var (diagnostics, generatedSources) = GeneratorTestHelper.RunGenerator(source);
+        Assert.Empty(diagnostics);
+        var attributeSource = GeneratorTestHelper.FindGeneratedSource(
+            generatedSources,
+            "class ErrorBaseTypeAttribute"
+        );
+        Assert.NotNull(attributeSource);
+        Assert.Contains("System.AttributeTargets.Assembly", attributeSource);
+        Assert.Contains("AllowMultiple = false", attributeSource);
+        Assert.Contains("System.Type", attributeSource);
+    }
+
+    [Fact]
+    public void BaseType_Interface_On_Record_Class()
+    {
+        var source = """
+            using System;
+            using Base16.ErrGen;
+
+            [assembly: ErrorBaseType(typeof(TestNamespace.IMyError))]
+
+            namespace TestNamespace;
+
+            public interface IMyError
+            {
+                String Message { get; }
+            }
+
+            [Error("Something went wrong")]
+            public partial record MyError;
+            """;
+
+        var (diagnostics, generatedSources) = GeneratorTestHelper.RunGenerator(source);
+
+        Assert.Empty(diagnostics);
+        var errorSource = GeneratorTestHelper.FindGeneratedSource(
+            generatedSources,
+            "partial record MyError"
+        );
+        Assert.NotNull(errorSource);
+        Assert.Contains(
+            "public partial record MyError : global::TestNamespace.IMyError",
+            errorSource
+        );
+    }
+
+    [Fact]
     public void Generates_String_Concat_With_Literal_And_Argument_Parts_For_Struct()
     {
         // Arrange
