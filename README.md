@@ -136,6 +136,41 @@ public partial record struct ConnectionError;
 
 Note that with two arguments, the naming is `From{Arg1}And{Arg2}` — the "And" separator only appears before the last argument.
 
+## Base Type Inheritance
+
+Use the assembly-level `[ErrorBaseType]` attribute to make all generated error types inherit from a shared interface or class:
+
+```csharp
+public interface IError
+{
+    String Message { get; }
+}
+
+[assembly: ErrorBaseType(typeof(IError))]
+```
+
+All `[Error]` types in the assembly will now implement `IError`:
+
+```csharp
+[Error("User '{Name:String}' was not found")]
+public partial record struct UserNotFoundError; // implements IError
+
+[Error("Payment of {Amount:Decimal} failed")]
+public partial record PaymentError; // implements IError
+```
+
+If the base type declares a `String Message` property, the generator skips generating it on the error types (since it's satisfied by the base type).
+
+Both interfaces and classes are supported. Classes work with record classes only — record structs cannot inherit from classes.
+
+```csharp
+// Interface — works with both record structs and record classes
+[assembly: ErrorBaseType(typeof(IError))]
+
+// Class — works with record classes only
+[assembly: ErrorBaseType(typeof(BaseError))]
+```
+
 ## Usage with OneOf
 
 Generated error types pair naturally with [OneOf](https://github.com/mcintyre321/OneOf) for discriminated-union-style return types:
