@@ -133,7 +133,17 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
                     .DistinctBy(x => x.Name)
                     .ToList();
 
-                var namePart = String.Join("And", arguments.Select(x => x.Name));
+                var namePart = arguments.Count switch
+                {
+                    0 => String.Empty,
+                    1 => arguments[0].Name,
+                    _ => String.Concat([
+                        .. arguments.Select(x => x.Name).Take(arguments.Count - 1),
+                        "And",
+                        arguments.Last().Name,
+                    ]),
+                };
+
                 var args = String.Join(
                     ", ",
                     arguments.Select(x => $"{x.Type ?? "Object?"} {x.Name.ToCamelCase()}")

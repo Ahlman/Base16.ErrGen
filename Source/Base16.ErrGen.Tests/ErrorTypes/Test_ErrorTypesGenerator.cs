@@ -100,7 +100,7 @@ public class Test_ErrorTypesGenerator
         );
         Assert.NotNull(errorSource);
         Assert.Contains(
-            "public static HttpError FromMethodAndPathAndStatusCode(String method, String path, Int32 statusCode)",
+            "public static HttpError FromMethodPathAndStatusCode(String method, String path, Int32 statusCode)",
             errorSource
         );
     }

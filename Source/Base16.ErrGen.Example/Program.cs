@@ -18,7 +18,7 @@ public static class Program
         Console.WriteLine($"HttpError:          {httpErr.Message}");
 
         // Multiple typed arguments
-        var validErr = ValidationError.FromFieldNameAndMinAndMax("Age", 0, 150);
+        var validErr = ValidationError.FromFieldNameMinAndMax("Age", 0, 150);
         Console.WriteLine($"ValidationError:    {validErr.Message}");
 
         // Multiple factory methods from multiple [Error] attributes
@@ -101,7 +101,7 @@ public static class Program
     private static OneOf<User, ValidationError, HttpError> CreateUser(String name, String email)
     {
         if (String.IsNullOrWhiteSpace(name))
-            return ValidationError.FromFieldNameAndMinAndMax("Name", 1, 100);
+            return ValidationError.FromFieldNameMinAndMax("Name", 1, 100);
 
         // Simulate success
         return new User(name, email);

@@ -109,14 +109,14 @@ Templates use `{Name}` or `{Name:Type}` placeholders:
 | `{Name}` | `Object? name` | Untyped argument (defaults to `Object?`) |
 | `{Name:String}` | `String name` | Typed argument |
 
-Multiple arguments in a single template produce a factory method named `From{Arg1}And{Arg2}...`:
+Multiple arguments in a single template produce a factory method named `From{Arg1}{Arg2}And{ArgN}`:
 
 ```csharp
 [Error("{Method:String} {Path:String} returned {StatusCode:Int32}")]
 public partial record struct HttpError;
 
 // Generates:
-// public static HttpError FromMethodAndPathAndStatusCode(
+// public static HttpError FromMethodPathAndStatusCode(
 //     String method, String path, Int32 statusCode)
 ```
 
@@ -134,6 +134,8 @@ public partial record struct ConnectionError;
 // public static ConnectionError FromHost(String host)
 ```
 
+Note that with two arguments, the naming is `From{Arg1}And{Arg2}` — the "And" separator only appears before the last argument.
+
 ## Usage with OneOf
 
 Generated error types pair naturally with [OneOf](https://github.com/mcintyre321/OneOf) for discriminated-union-style return types:
@@ -150,7 +152,7 @@ public partial record struct ValidationError;
 public static OneOf<User, ValidationError, UserNotFoundError> CreateUser(String name, String email)
 {
     if (String.IsNullOrWhiteSpace(name))
-        return ValidationError.FromFieldNameAndMinAndMax("Name", 1, 100);
+        return ValidationError.FromFieldNameMinAndMax("Name", 1, 100);
 
     return new User(name, email);
 }
