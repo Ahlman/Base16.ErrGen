@@ -4,6 +4,12 @@
         <Authors>Fredrik Ahlman</Authors>
         <Company>Base16 Consulting AB</Company>
         <Copyright>Copyright © Base16 Consulting AB</Copyright>
+        <Description>A C# source generator that generates structured error types from [Error] attribute templates. No runtime dependency required — all types are source-generated.</Description>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageProjectUrl>https://github.com/Ahlman/Base16.ErrGen</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/Ahlman/Base16.ErrGen</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageTags>source-generator;roslyn;errors;codegen</PackageTags>
     </PropertyGroup>
 
     <PropertyGroup>
