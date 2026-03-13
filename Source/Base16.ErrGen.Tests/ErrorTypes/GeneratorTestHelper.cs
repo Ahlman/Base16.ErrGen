@@ -42,7 +42,11 @@ internal static class GeneratorTestHelper
             .GeneratedTrees.Select(t => t.GetText().ToString())
             .ToArray();
 
-        return (diagnostics, generatedSources);
+        var allDiagnostics = diagnostics
+            .AddRange(runResult.Diagnostics)
+            .AddRange(runResult.Results.SelectMany(r => r.Diagnostics));
+
+        return (allDiagnostics, generatedSources);
     }
 
     public static String? FindGeneratedSource(String[] sources, String fileNamePart)

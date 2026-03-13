@@ -265,6 +265,155 @@ public class Test_ErrorTypesGenerator
     }
 
     [Fact]
+    public void BaseType_Interface_On_Record_Struct()
+    {
+        var source = """
+            using Base16.ErrGen;
+
+            [assembly: ErrorBaseType(typeof(TestNamespace.IMyError))]
+
+            namespace TestNamespace;
+
+            public interface IMyError { }
+
+            [Error("Something went wrong")]
+            public partial record struct MyError;
+            """;
+
+        var (diagnostics, generatedSources) = GeneratorTestHelper.RunGenerator(source);
+
+        Assert.Empty(diagnostics);
+        var errorSource = GeneratorTestHelper.FindGeneratedSource(
+            generatedSources,
+            "partial record struct MyError"
+        );
+        Assert.NotNull(errorSource);
+        Assert.Contains(
+            "public partial record struct MyError : global::TestNamespace.IMyError",
+            errorSource
+        );
+    }
+
+    [Fact]
+    public void BaseType_Class_On_Record_Class()
+    {
+        var source = """
+            using Base16.ErrGen;
+
+            [assembly: ErrorBaseType(typeof(TestNamespace.MyBaseError))]
+
+            namespace TestNamespace;
+
+            public class MyBaseError { }
+
+            [Error("Something went wrong")]
+            public partial record MyError;
+            """;
+
+        var (diagnostics, generatedSources) = GeneratorTestHelper.RunGenerator(source);
+
+        Assert.Empty(diagnostics);
+        var errorSource = GeneratorTestHelper.FindGeneratedSource(
+            generatedSources,
+            "partial record MyError"
+        );
+        Assert.NotNull(errorSource);
+        Assert.Contains(
+            "public partial record MyError : global::TestNamespace.MyBaseError",
+            errorSource
+        );
+    }
+
+    [Fact]
+    public void BaseType_Interface_With_Message_Skips_Message_Generation()
+    {
+        var source = """
+            using Base16.ErrGen;
+            using System;
+
+            [assembly: ErrorBaseType(typeof(TestNamespace.IMyError))]
+
+            namespace TestNamespace;
+
+            public interface IMyError
+            {
+                String Message { get; }
+            }
+
+            [Error("Something went wrong")]
+            public partial record MyError;
+            """;
+
+        var (diagnostics, generatedSources) = GeneratorTestHelper.RunGenerator(source);
+
+        Assert.Empty(diagnostics);
+        var errorSource = GeneratorTestHelper.FindGeneratedSource(
+            generatedSources,
+            "partial record MyError"
+        );
+        Assert.NotNull(errorSource);
+        Assert.DoesNotContain("public String Message { get; private set; }", errorSource);
+    }
+
+    [Fact]
+    public void BaseType_Interface_Without_Message_Generates_Message()
+    {
+        var source = """
+            using Base16.ErrGen;
+
+            [assembly: ErrorBaseType(typeof(TestNamespace.IMyError))]
+
+            namespace TestNamespace;
+
+            public interface IMyError { }
+
+            [Error("Something went wrong")]
+            public partial record MyError;
+            """;
+
+        var (diagnostics, generatedSources) = GeneratorTestHelper.RunGenerator(source);
+
+        Assert.Empty(diagnostics);
+        var errorSource = GeneratorTestHelper.FindGeneratedSource(
+            generatedSources,
+            "partial record MyError"
+        );
+        Assert.NotNull(errorSource);
+        Assert.Contains("public String Message { get; private set; }", errorSource);
+    }
+
+    [Fact]
+    public void BaseType_Class_With_Message_Skips_Message_Generation()
+    {
+        var source = """
+            using Base16.ErrGen;
+            using System;
+
+            [assembly: ErrorBaseType(typeof(TestNamespace.MyBaseError))]
+
+            namespace TestNamespace;
+
+            public class MyBaseError
+            {
+                public String Message { get; set; } = default!;
+            }
+
+            [Error("Something went wrong")]
+            public partial record MyError;
+            """;
+
+        var (diagnostics, generatedSources) = GeneratorTestHelper.RunGenerator(source);
+
+        Assert.Empty(diagnostics);
+        var errorSource = GeneratorTestHelper.FindGeneratedSource(
+            generatedSources,
+            "partial record MyError"
+        );
+        Assert.NotNull(errorSource);
+        Assert.DoesNotContain("public String Message { get; private set; }", errorSource);
+    }
+
+    [Fact]
     public void Generates_String_Concat_With_Literal_And_Argument_Parts_For_Struct()
     {
         // Arrange
@@ -291,5 +440,169 @@ public class Test_ErrorTypesGenerator
         Assert.Contains("\"Hello \"", errorSource);
         Assert.Contains("name", errorSource);
         Assert.Contains("\"!\"", errorSource);
+    }
+
+    [Fact]
+    public void BaseType_Class_On_Record_Struct_Emits_ERR002()
+    {
+        var source = """
+            using Base16.ErrGen;
+
+            [assembly: ErrorBaseType(typeof(TestNamespace.MyBaseError))]
+
+            namespace TestNamespace;
+
+            public class MyBaseError { }
+
+            [Error("Something went wrong")]
+            public partial record struct MyError;
+            """;
+
+        var (diagnostics, generatedSources) = GeneratorTestHelper.RunGenerator(source);
+
+        Assert.Contains(diagnostics, d => d.Id == "ERR002");
+    }
+
+    [Fact]
+    public void BaseType_Enum_Type_Emits_ERR001()
+    {
+        var source = """
+            using Base16.ErrGen;
+
+            [assembly: ErrorBaseType(typeof(TestNamespace.MyEnum))]
+
+            namespace TestNamespace;
+
+            public enum MyEnum { A, B }
+
+            [Error("Something went wrong")]
+            public partial record MyError;
+            """;
+
+        var (diagnostics, generatedSources) = GeneratorTestHelper.RunGenerator(source);
+
+        Assert.Contains(diagnostics, d => d.Id == "ERR001");
+    }
+
+    [Fact]
+    public void BaseType_Abstract_Class_Emits_ERR003()
+    {
+        var source = """
+            using Base16.ErrGen;
+
+            [assembly: ErrorBaseType(typeof(TestNamespace.MyBaseError))]
+
+            namespace TestNamespace;
+
+            public abstract class MyBaseError { }
+
+            [Error("Something went wrong")]
+            public partial record MyError;
+            """;
+
+        var (diagnostics, generatedSources) = GeneratorTestHelper.RunGenerator(source);
+
+        Assert.Contains(diagnostics, d => d.Id == "ERR003");
+    }
+
+    [Fact]
+    public void BaseType_Generic_Type_Emits_ERR004()
+    {
+        var source = """
+            using Base16.ErrGen;
+
+            [assembly: ErrorBaseType(typeof(TestNamespace.IMyError<string>))]
+
+            namespace TestNamespace;
+
+            public interface IMyError<T> { }
+
+            [Error("Something went wrong")]
+            public partial record MyError;
+            """;
+
+        var (diagnostics, generatedSources) = GeneratorTestHelper.RunGenerator(source);
+
+        Assert.Contains(diagnostics, d => d.Id == "ERR004");
+    }
+
+    [Fact]
+    public void BaseType_NonString_Message_Emits_ERR005()
+    {
+        var source = """
+            using Base16.ErrGen;
+            using System;
+
+            [assembly: ErrorBaseType(typeof(TestNamespace.IMyError))]
+
+            namespace TestNamespace;
+
+            public interface IMyError
+            {
+                Int32 Message { get; }
+            }
+
+            [Error("Something went wrong")]
+            public partial record MyError;
+            """;
+
+        var (diagnostics, generatedSources) = GeneratorTestHelper.RunGenerator(source);
+
+        Assert.Contains(diagnostics, d => d.Id == "ERR005");
+    }
+
+    [Fact]
+    public void No_BaseType_Attribute_Preserves_Existing_Behavior()
+    {
+        var source = """
+            using Base16.ErrGen;
+
+            namespace TestNamespace;
+
+            [Error("User '{Name:String}' was not found")]
+            public partial record UserNotFoundError;
+            """;
+
+        var (diagnostics, generatedSources) = GeneratorTestHelper.RunGenerator(source);
+
+        Assert.Empty(diagnostics);
+        var errorSource = GeneratorTestHelper.FindGeneratedSource(
+            generatedSources,
+            "partial record UserNotFoundError"
+        );
+        Assert.NotNull(errorSource);
+        Assert.Contains("public String Message { get; private set; }", errorSource);
+        Assert.Contains("public static UserNotFoundError FromName(String name)", errorSource);
+    }
+
+    [Fact]
+    public void BaseType_In_Different_Namespace_Uses_Fully_Qualified_Name()
+    {
+        var source = """
+            using Base16.ErrGen;
+
+            [assembly: ErrorBaseType(typeof(Other.Namespace.IMyError))]
+
+            namespace Other.Namespace
+            {
+                public interface IMyError { }
+            }
+
+            namespace TestNamespace
+            {
+                [Error("Something went wrong")]
+                public partial record MyError;
+            }
+            """;
+
+        var (diagnostics, generatedSources) = GeneratorTestHelper.RunGenerator(source);
+
+        Assert.Empty(diagnostics);
+        var errorSource = GeneratorTestHelper.FindGeneratedSource(
+            generatedSources,
+            "partial record MyError"
+        );
+        Assert.NotNull(errorSource);
+        Assert.Contains("global::Other.Namespace.IMyError", errorSource);
     }
 }
