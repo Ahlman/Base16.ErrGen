@@ -6,4 +6,5 @@
   </Folder>
   <Project Path="Source/Base16.ErrGen.Tests/Base16.ErrGen.Tests.csproj" />
   <Project Path="Source/Base16.ErrGen/Base16.ErrGen.csproj" />
+  <Project Path="Source/Base16.ErrGen.Example/Base16.ErrGen.Example.csproj" />
 </Solution>
