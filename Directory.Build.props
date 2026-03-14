@@ -10,8 +10,12 @@
         <RepositoryUrl>https://github.com/Ahlman/Base16.ErrGen</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
         <PackageTags>source-generator;roslyn;errors;codegen</PackageTags>
-        <VersionPrefix Condition="'$(Configuration)' != 'Release'">99.99.99</VersionPrefix>
-        <VersionSuffix Condition="'$(Configuration)' != 'Release'">local.$([System.DateTime]::UtcNow.ToString("yyyyMMddHHmmss"))</VersionSuffix>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)' != 'Release'">
+        <VersionPrefix>99.99.99</VersionPrefix>
+        <VersionSuffix Condition="'$(BuildingInsideVisualStudio)' != 'true'">local.$([System.DateTime]::UtcNow.ToString("yyyyMMddHHmmss"))</VersionSuffix>
+        <VersionSuffix Condition="'$(BuildingInsideVisualStudio)' == 'true'">local</VersionSuffix>
     </PropertyGroup>
 
     <PropertyGroup>
