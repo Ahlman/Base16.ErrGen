@@ -202,11 +202,18 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
                 };
 #pragma warning restore IDE0072
 
-                var templateStrings = symbol
+                var errorAttributes = symbol
                     .GetAttributes()
                     .Where(x => x.AttributeClass!.ToDisplayString() == ErrorAttributeName)
+                    .ToImmutableArray();
+
+                var templateStrings = errorAttributes
                     .Select(x => x.ConstructorArguments[0].Value)
                     .OfType<String>()
+                    .ToImmutableArray();
+
+                var templateLocations = errorAttributes
+                    .Select(x => x.ApplicationSyntaxReference?.GetSyntax().GetLocation())
                     .ToImmutableArray();
 
                 return new ErrorTypeModel(
@@ -218,7 +225,11 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
                     isPartial,
                     new EquatableArray<String>(templateStrings),
                     explicitBase
-                );
+                )
+                {
+                    TypeLocation = symbol.Locations.FirstOrDefault(),
+                    TemplateLocations = templateLocations,
+                };
             }
         );
 
@@ -257,7 +268,7 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
             context.ReportDiagnostic(
                 Diagnostic.Create(
                     ErrorDiagnostics.ErrorTypeMustBePartial,
-                    Location.None,
+                    model.TypeLocation,
                     model.Name
                 )
             );
@@ -276,7 +287,7 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
                 context.ReportDiagnostic(
                     Diagnostic.Create(
                         ErrorDiagnostics.StructCannotInheritClass,
-                        Location.None,
+                        model.TypeLocation,
                         model.Name,
                         baseTypeInfo.FullyQualifiedName
                     )
@@ -297,14 +308,25 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
         );
 
         var errorTemplates = new List<StringTemplate>();
-        foreach (var templateStr in model.TemplateStrings)
+        for (var i = 0; i < model.TemplateStrings.Count; i++)
         {
-            if (!StringTemplate.TryParse(templateStr, out var parsed, out var parseError))
+            var templateLocation =
+                i < model.TemplateLocations.Length
+                    ? model.TemplateLocations[i]
+                    : model.TypeLocation;
+
+            if (
+                !StringTemplate.TryParse(
+                    model.TemplateStrings[i],
+                    out var parsed,
+                    out var parseError
+                )
+            )
             {
                 context.ReportDiagnostic(
                     Diagnostic.Create(
                         ErrorDiagnostics.InvalidTemplateSyntax,
-                        Location.None,
+                        templateLocation,
                         parseError
                     )
                 );
@@ -315,16 +337,21 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
         }
 
         var factoryNames = new HashSet<String>();
-        foreach (var template in errorTemplates)
+        for (var i = 0; i < errorTemplates.Count; i++)
         {
-            var namePart = GetFactoryMethodName(template);
+            var namePart = GetFactoryMethodName(errorTemplates[i]);
 
             if (!factoryNames.Add(namePart))
             {
+                var templateLocation =
+                    i < model.TemplateLocations.Length
+                        ? model.TemplateLocations[i]
+                        : model.TypeLocation;
+
                 context.ReportDiagnostic(
                     Diagnostic.Create(
                         ErrorDiagnostics.DuplicateFactoryMethod,
-                        Location.None,
+                        templateLocation,
                         model.Name,
                         namePart
                     )
