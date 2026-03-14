@@ -20,7 +20,6 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
     {
         context.RegisterPostInitializationOutput(static ctx =>
         {
-            ctx.AddSource("Base16.ErrGen.IsExternalInit.g.cs", StaticTypes.IsExternalInit);
             ctx.AddSource("Base16.ErrGen.ErrorAttribute.g.cs", StaticTypes.ErrorAttribute);
             ctx.AddSource(
                 "Base16.ErrGen.ErrorBaseTypeAttribute.g.cs",

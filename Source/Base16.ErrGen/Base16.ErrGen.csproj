@@ -43,8 +43,6 @@
 
   <!-- Declare supported target frameworks in the NuGet package -->
   <ItemGroup>
-    <None Include="buildTransitive\_._ " Pack="true" PackagePath="lib/net472" />
-    <None Include="buildTransitive\_._ " Pack="true" PackagePath="lib/net481" />
     <None Include="buildTransitive\_._ " Pack="true" PackagePath="lib/net8.0" />
     <None Include="buildTransitive\_._ " Pack="true" PackagePath="lib/net9.0" />
     <None Include="buildTransitive\_._ " Pack="true" PackagePath="lib/net10.0" />

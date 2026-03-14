@@ -4,11 +4,7 @@ A C# source generator that generates structured error types from `[Error]` attri
 
 ## Supported Frameworks
 
-- .NET Framework 4.7.2+
-- .NET Framework 4.8.1+
-- .NET 8.0
-- .NET 9.0
-- .NET 10.0
+- .NET 5.0+
 
 ## Installation
 
