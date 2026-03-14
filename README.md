@@ -36,8 +36,13 @@ public partial record struct UserNotFoundError
 
     public static UserNotFoundError FromName(String name)
     {
-        var message = String.Concat("User '", name, "' was not found");
-        return new UserNotFoundError
+        var message = String.Concat(
+            "User '",
+            name,
+            "' was not found"
+        );
+
+        return new UserNotFoundError()
         {
             Message = message,
             Name = name,
@@ -46,8 +51,13 @@ public partial record struct UserNotFoundError
 
     public static UserNotFoundError FromId(Int32 id)
     {
-        var message = String.Concat("User with ID ", id, " was not found");
-        return new UserNotFoundError
+        var message = String.Concat(
+            "User with ID ",
+            id,
+            " was not found"
+        );
+
+        return new UserNotFoundError()
         {
             Message = message,
             Id = id,
