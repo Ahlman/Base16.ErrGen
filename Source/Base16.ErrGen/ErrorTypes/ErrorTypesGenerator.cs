@@ -342,6 +342,50 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
                     : String.Join(", ", templateArgs);
 
                 cb.AppendLine();
+
+                var templateDisplay = String.Concat(
+                    template.Parts.Select(p =>
+                        p switch
+                        {
+                            StringTemplateLiteralPart lit => lit.Value,
+                            StringTemplateArgumentPart arg => arg.Type is not null
+                                ? $"{{{arg.Name}:{arg.Type}}}"
+                                : $"{{{arg.Name}}}",
+                            _ => "",
+                        }
+                    )
+                );
+                cb.AppendLine(
+                    $"""
+                    /// <summary>
+                    ///     Creates a new <see cref="{model.Name}"/> with the message template:
+                    ///     <para>
+                    ///         <c>{EscapeXml(templateDisplay)}</c>
+                    ///     </para>
+                    /// </summary>
+                    """
+                );
+                if (baseTypeInfo?.BaseFactoryParamDeclarations is { Length: > 0 } baseParamDecls)
+                {
+                    foreach (var decl in baseParamDecls.Split(','))
+                    {
+                        var parts = decl.Trim().Split(' ');
+                        var paramName = parts[parts.Length - 1];
+                        cb.AppendLine(
+                            $"/// <param name=\"{paramName}\">The value passed to the base type constructor.</param>"
+                        );
+                    }
+                }
+                foreach (var arg in arguments)
+                {
+                    cb.AppendLine(
+                        $"/// <param name=\"{arg.Name.ToCamelCase()}\">The value for the <c>{{{EscapeXml(arg.Name)}}}</c> placeholder.</param>"
+                    );
+                }
+                cb.AppendLine(
+                    $"/// <returns>A new instance of <see cref=\"{model.Name}\"/>.</returns>"
+                );
+
                 cb.AppendLine($"public static {model.Name} From{namePart}({allArgs})");
                 using (cb.PushScope())
                 {
@@ -467,5 +511,14 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
             baseCtorCallArgs,
             baseFactoryParamDeclarations
         );
+    }
+
+    private static String EscapeXml(String value)
+    {
+        return value
+            .Replace("&", "&amp;")
+            .Replace("<", "&lt;")
+            .Replace(">", "&gt;")
+            .Replace("\"", "&quot;");
     }
 }

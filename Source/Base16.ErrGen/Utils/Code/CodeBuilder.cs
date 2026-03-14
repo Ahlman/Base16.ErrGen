@@ -55,12 +55,16 @@ internal abstract class CodeBuilder
             return;
         }
 
-        for (var i = 0; i < _indent; i++)
+        var lines = text.Split('\n');
+        foreach (var line in lines)
         {
-            _buffer.Append(Indent);
-        }
+            for (var i = 0; i < _indent; i++)
+            {
+                _buffer.Append(Indent);
+            }
 
-        _buffer.AppendLine(text);
+            _buffer.AppendLine(line.Trim('\r'));
+        }
     }
 
     public void AppendLines(String lines)
