@@ -217,8 +217,13 @@ public class Test_ErrorTypesGenerator
     [Fact]
     public void Generates_ErrorBaseTypeAttribute()
     {
+        // Arrange
         var source = "";
+
+        // Act
         var (diagnostics, generatedSources) = GeneratorTestHelper.RunGenerator(source);
+
+        // Assert
         Assert.Empty(diagnostics);
         var attributeSource = GeneratorTestHelper.FindGeneratedSource(
             generatedSources,
@@ -233,6 +238,7 @@ public class Test_ErrorTypesGenerator
     [Fact]
     public void BaseType_Interface_On_Record_Class()
     {
+        // Arrange
         var source = """
             using System;
             using Base16.ErrGen;
@@ -250,8 +256,10 @@ public class Test_ErrorTypesGenerator
             public partial record MyError;
             """;
 
+        // Act
         var (diagnostics, generatedSources) = GeneratorTestHelper.RunGenerator(source);
 
+        // Assert
         Assert.Empty(diagnostics);
         var errorSource = GeneratorTestHelper.FindGeneratedSource(
             generatedSources,
@@ -267,6 +275,7 @@ public class Test_ErrorTypesGenerator
     [Fact]
     public void BaseType_Interface_On_Record_Struct()
     {
+        // Arrange
         var source = """
             using Base16.ErrGen;
 
@@ -280,8 +289,10 @@ public class Test_ErrorTypesGenerator
             public partial record struct MyError;
             """;
 
+        // Act
         var (diagnostics, generatedSources) = GeneratorTestHelper.RunGenerator(source);
 
+        // Assert
         Assert.Empty(diagnostics);
         var errorSource = GeneratorTestHelper.FindGeneratedSource(
             generatedSources,
@@ -297,6 +308,7 @@ public class Test_ErrorTypesGenerator
     [Fact]
     public void BaseType_Class_On_Record_Class()
     {
+        // Arrange
         var source = """
             using Base16.ErrGen;
 
@@ -310,8 +322,10 @@ public class Test_ErrorTypesGenerator
             public partial record MyError;
             """;
 
+        // Act
         var (diagnostics, generatedSources) = GeneratorTestHelper.RunGenerator(source);
 
+        // Assert
         Assert.Empty(diagnostics);
         var errorSource = GeneratorTestHelper.FindGeneratedSource(
             generatedSources,
@@ -327,6 +341,7 @@ public class Test_ErrorTypesGenerator
     [Fact]
     public void BaseType_Interface_With_Message_Skips_Message_Generation()
     {
+        // Arrange
         var source = """
             using Base16.ErrGen;
             using System;
@@ -344,8 +359,10 @@ public class Test_ErrorTypesGenerator
             public partial record MyError;
             """;
 
+        // Act
         var (diagnostics, generatedSources) = GeneratorTestHelper.RunGenerator(source);
 
+        // Assert
         Assert.Empty(diagnostics);
         var errorSource = GeneratorTestHelper.FindGeneratedSource(
             generatedSources,
@@ -358,6 +375,7 @@ public class Test_ErrorTypesGenerator
     [Fact]
     public void BaseType_Interface_Without_Message_Generates_Message()
     {
+        // Arrange
         var source = """
             using Base16.ErrGen;
 
@@ -371,8 +389,10 @@ public class Test_ErrorTypesGenerator
             public partial record MyError;
             """;
 
+        // Act
         var (diagnostics, generatedSources) = GeneratorTestHelper.RunGenerator(source);
 
+        // Assert
         Assert.Empty(diagnostics);
         var errorSource = GeneratorTestHelper.FindGeneratedSource(
             generatedSources,
@@ -385,6 +405,7 @@ public class Test_ErrorTypesGenerator
     [Fact]
     public void BaseType_Class_With_Message_Skips_Message_Generation()
     {
+        // Arrange
         var source = """
             using Base16.ErrGen;
             using System;
@@ -402,8 +423,10 @@ public class Test_ErrorTypesGenerator
             public partial record MyError;
             """;
 
+        // Act
         var (diagnostics, generatedSources) = GeneratorTestHelper.RunGenerator(source);
 
+        // Assert
         Assert.Empty(diagnostics);
         var errorSource = GeneratorTestHelper.FindGeneratedSource(
             generatedSources,
@@ -445,6 +468,7 @@ public class Test_ErrorTypesGenerator
     [Fact]
     public void BaseType_Class_On_Record_Struct_Emits_ERR002()
     {
+        // Arrange
         var source = """
             using Base16.ErrGen;
 
@@ -458,14 +482,17 @@ public class Test_ErrorTypesGenerator
             public partial record struct MyError;
             """;
 
+        // Act
         var (diagnostics, generatedSources) = GeneratorTestHelper.RunGenerator(source);
 
+        // Assert
         Assert.Contains(diagnostics, d => d.Id == "ERR002");
     }
 
     [Fact]
     public void BaseType_Enum_Type_Emits_ERR001()
     {
+        // Arrange
         var source = """
             using Base16.ErrGen;
 
@@ -479,14 +506,17 @@ public class Test_ErrorTypesGenerator
             public partial record MyError;
             """;
 
+        // Act
         var (diagnostics, generatedSources) = GeneratorTestHelper.RunGenerator(source);
 
+        // Assert
         Assert.Contains(diagnostics, d => d.Id == "ERR001");
     }
 
     [Fact]
     public void BaseType_Generic_Type_Emits_ERR003()
     {
+        // Arrange
         var source = """
             using Base16.ErrGen;
 
@@ -500,14 +530,17 @@ public class Test_ErrorTypesGenerator
             public partial record MyError;
             """;
 
+        // Act
         var (diagnostics, generatedSources) = GeneratorTestHelper.RunGenerator(source);
 
+        // Assert
         Assert.Contains(diagnostics, d => d.Id == "ERR003");
     }
 
     [Fact]
     public void BaseType_NonString_Message_Emits_ERR004()
     {
+        // Arrange
         var source = """
             using Base16.ErrGen;
             using System;
@@ -525,14 +558,17 @@ public class Test_ErrorTypesGenerator
             public partial record MyError;
             """;
 
+        // Act
         var (diagnostics, generatedSources) = GeneratorTestHelper.RunGenerator(source);
 
+        // Assert
         Assert.Contains(diagnostics, d => d.Id == "ERR004");
     }
 
     [Fact]
     public void No_BaseType_Attribute_Preserves_Existing_Behavior()
     {
+        // Arrange
         var source = """
             using Base16.ErrGen;
 
@@ -542,8 +578,10 @@ public class Test_ErrorTypesGenerator
             public partial record UserNotFoundError;
             """;
 
+        // Act
         var (diagnostics, generatedSources) = GeneratorTestHelper.RunGenerator(source);
 
+        // Assert
         Assert.Empty(diagnostics);
         var errorSource = GeneratorTestHelper.FindGeneratedSource(
             generatedSources,
@@ -557,6 +595,7 @@ public class Test_ErrorTypesGenerator
     [Fact]
     public void BaseType_In_Different_Namespace_Uses_Fully_Qualified_Name()
     {
+        // Arrange
         var source = """
             using Base16.ErrGen;
 
@@ -574,8 +613,10 @@ public class Test_ErrorTypesGenerator
             }
             """;
 
+        // Act
         var (diagnostics, generatedSources) = GeneratorTestHelper.RunGenerator(source);
 
+        // Assert
         Assert.Empty(diagnostics);
         var errorSource = GeneratorTestHelper.FindGeneratedSource(
             generatedSources,
