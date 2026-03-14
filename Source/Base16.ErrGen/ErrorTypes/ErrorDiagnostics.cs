@@ -48,4 +48,13 @@ internal static class ErrorDiagnostics
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true
     );
+
+    public static readonly DiagnosticDescriptor InvalidTemplateSyntax = new(
+        id: "ERR006",
+        title: "Invalid template syntax",
+        messageFormat: "Error template has invalid syntax: {0}",
+        category: "Base16.ErrGen",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true
+    );
 }

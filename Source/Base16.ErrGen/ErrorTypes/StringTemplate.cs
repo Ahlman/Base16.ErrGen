@@ -18,7 +18,7 @@ internal sealed class StringTemplate
         Parts = parts;
     }
 
-    public static StringTemplate Parse(String template)
+    public static Boolean TryParse(String template, out StringTemplate? result, out String? error)
     {
         var parts = new List<StringTemplatePart>();
         var pos = 0;
@@ -40,20 +40,41 @@ internal sealed class StringTemplate
             var close = template.IndexOf('}', open);
             if (close < 0)
             {
-                parts.Add(new StringTemplateLiteralPart(template.Substring(open)));
-                break;
+                result = null;
+                error = "unclosed placeholder '{' without matching '}'";
+                return false;
             }
 
             var inner = template.Substring(open + 1, close - open - 1);
+
+            if (String.IsNullOrWhiteSpace(inner))
+            {
+                result = null;
+                error = "empty placeholder '{}' is not allowed";
+                return false;
+            }
+
             var colonIndex = inner.IndexOf(':');
             if (colonIndex >= 0)
             {
-                parts.Add(
-                    new StringTemplateArgumentPart(
-                        inner.Substring(0, colonIndex),
-                        inner.Substring(colonIndex + 1)
-                    )
-                );
+                var name = inner.Substring(0, colonIndex);
+                var type = inner.Substring(colonIndex + 1);
+
+                if (String.IsNullOrWhiteSpace(name))
+                {
+                    result = null;
+                    error = $"placeholder '{{:{type}}}' is missing a name";
+                    return false;
+                }
+
+                if (String.IsNullOrWhiteSpace(type))
+                {
+                    result = null;
+                    error = $"placeholder '{{{name}:}}' is missing a type after ':'";
+                    return false;
+                }
+
+                parts.Add(new StringTemplateArgumentPart(name, type));
             }
             else
             {
@@ -63,6 +84,8 @@ internal sealed class StringTemplate
             pos = close + 1;
         }
 
-        return new StringTemplate(parts);
+        result = new StringTemplate(parts);
+        error = null;
+        return true;
     }
 }

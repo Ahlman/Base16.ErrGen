@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Base16.ErrGen.Extensions;
 using Base16.ErrGen.Utils.Code;
@@ -278,13 +279,31 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
             """
         );
 
-        var errorTemplates = errorType
+        var errorAttributes = errorType
             .GetAttributes()
             .Where(x => x.AttributeClass!.ToDisplayString() == ErrorAttributeName)
-            .Select(x => x.ConstructorArguments[0].Value)
-            .OfType<String>()
-            .Select(StringTemplate.Parse)
             .ToList();
+
+        var errorTemplates = new List<StringTemplate>();
+        foreach (var attr in errorAttributes)
+        {
+            if (attr.ConstructorArguments[0].Value is not String templateStr)
+                continue;
+
+            if (!StringTemplate.TryParse(templateStr, out var parsed, out var parseError))
+            {
+                context.ReportDiagnostic(
+                    Diagnostic.Create(
+                        ErrorDiagnostics.InvalidTemplateSyntax,
+                        attr.ApplicationSyntaxReference?.GetSyntax().GetLocation(),
+                        parseError
+                    )
+                );
+                return;
+            }
+
+            errorTemplates.Add(parsed!);
+        }
 
         using (cb.PushScope())
         {

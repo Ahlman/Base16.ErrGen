@@ -822,4 +822,64 @@ public class Test_ErrorTypesGenerator
         // Assert
         Assert.Contains(diagnostics, d => d.Id == "ERR005");
     }
+
+    [Fact]
+    public void Invalid_Template_Unclosed_Brace_Emits_ERR006()
+    {
+        // Arrange
+        var source = """
+            using Base16.ErrGen;
+
+            namespace TestNamespace;
+
+            [Error("Hello {World")]
+            public partial record MyError;
+            """;
+
+        // Act
+        var (diagnostics, _) = GeneratorTestHelper.RunGenerator(source);
+
+        // Assert
+        Assert.Contains(diagnostics, d => d.Id == "ERR006");
+    }
+
+    [Fact]
+    public void Invalid_Template_Empty_Placeholder_Emits_ERR006()
+    {
+        // Arrange
+        var source = """
+            using Base16.ErrGen;
+
+            namespace TestNamespace;
+
+            [Error("Hello {}")]
+            public partial record MyError;
+            """;
+
+        // Act
+        var (diagnostics, _) = GeneratorTestHelper.RunGenerator(source);
+
+        // Assert
+        Assert.Contains(diagnostics, d => d.Id == "ERR006");
+    }
+
+    [Fact]
+    public void Invalid_Template_Missing_Type_After_Colon_Emits_ERR006()
+    {
+        // Arrange
+        var source = """
+            using Base16.ErrGen;
+
+            namespace TestNamespace;
+
+            [Error("Hello {Name:}")]
+            public partial record MyError;
+            """;
+
+        // Act
+        var (diagnostics, _) = GeneratorTestHelper.RunGenerator(source);
+
+        // Assert
+        Assert.Contains(diagnostics, d => d.Id == "ERR006");
+    }
 }

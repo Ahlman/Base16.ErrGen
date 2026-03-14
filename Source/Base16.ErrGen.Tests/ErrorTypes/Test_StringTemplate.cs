@@ -12,16 +12,18 @@ public class Test_StringTemplate
         var input = "Hello {Name}!";
 
         // Act
-        var template = StringTemplate.Parse(input);
+        var success = StringTemplate.TryParse(input, out var template, out var error);
 
         // Assert
+        Assert.True(success);
+        Assert.Null(error);
         Assert.Equal(
             [
                 new StringTemplateLiteralPart("Hello "),
                 new StringTemplateArgumentPart("Name", null),
                 new StringTemplateLiteralPart("!"),
             ],
-            template.Parts
+            template!.Parts
         );
     }
 
@@ -32,16 +34,18 @@ public class Test_StringTemplate
         var input = "Hello {Name:String}!";
 
         // Act
-        var template = StringTemplate.Parse(input);
+        var success = StringTemplate.TryParse(input, out var template, out var error);
 
         // Assert
+        Assert.True(success);
+        Assert.Null(error);
         Assert.Equal(
             [
                 new StringTemplateLiteralPart("Hello "),
                 new StringTemplateArgumentPart("Name", "String"),
                 new StringTemplateLiteralPart("!"),
             ],
-            template.Parts
+            template!.Parts
         );
     }
 
@@ -52,10 +56,11 @@ public class Test_StringTemplate
         var input = "hello world";
 
         // Act
-        var result = StringTemplate.Parse(input);
+        var success = StringTemplate.TryParse(input, out var result, out _);
 
         // Assert
-        var part = Assert.Single(result.Parts);
+        Assert.True(success);
+        var part = Assert.Single(result!.Parts);
         var literal = Assert.IsType<StringTemplateLiteralPart>(part);
         Assert.Equal("hello world", literal.Value);
     }
@@ -67,10 +72,11 @@ public class Test_StringTemplate
         var input = "{Name}";
 
         // Act
-        var result = StringTemplate.Parse(input);
+        var success = StringTemplate.TryParse(input, out var result, out _);
 
         // Assert
-        var part = Assert.Single(result.Parts);
+        Assert.True(success);
+        var part = Assert.Single(result!.Parts);
         var arg = Assert.IsType<StringTemplateArgumentPart>(part);
         Assert.Equal("Name", arg.Name);
         Assert.Null(arg.Type);
@@ -83,10 +89,11 @@ public class Test_StringTemplate
         var input = "{Name:String}";
 
         // Act
-        var result = StringTemplate.Parse(input);
+        var success = StringTemplate.TryParse(input, out var result, out _);
 
         // Assert
-        var part = Assert.Single(result.Parts);
+        Assert.True(success);
+        var part = Assert.Single(result!.Parts);
         var arg = Assert.IsType<StringTemplateArgumentPart>(part);
         Assert.Equal("Name", arg.Name);
         Assert.Equal("String", arg.Type);
@@ -99,10 +106,11 @@ public class Test_StringTemplate
         var input = "Hello {Name}, you are {Age} years old";
 
         // Act
-        var result = StringTemplate.Parse(input);
+        var success = StringTemplate.TryParse(input, out var result, out _);
 
         // Assert
-        Assert.Equal(5, result.Parts.Count);
+        Assert.True(success);
+        Assert.Equal(5, result!.Parts.Count);
 
         var lit0 = Assert.IsType<StringTemplateLiteralPart>(result.Parts[0]);
         Assert.Equal("Hello ", lit0.Value);
@@ -127,10 +135,11 @@ public class Test_StringTemplate
         var input = "{First}{Second}";
 
         // Act
-        var result = StringTemplate.Parse(input);
+        var success = StringTemplate.TryParse(input, out var result, out _);
 
         // Assert
-        Assert.Equal(2, result.Parts.Count);
+        Assert.True(success);
+        Assert.Equal(2, result!.Parts.Count);
 
         var arg0 = Assert.IsType<StringTemplateArgumentPart>(result.Parts[0]);
         Assert.Equal("First", arg0.Name);
@@ -146,29 +155,71 @@ public class Test_StringTemplate
         var input = "";
 
         // Act
-        var result = StringTemplate.Parse(input);
+        var success = StringTemplate.TryParse(input, out var result, out _);
 
         // Assert
-        Assert.Empty(result.Parts);
+        Assert.True(success);
+        Assert.Empty(result!.Parts);
     }
 
     [Fact]
-    public void Parse_UnclosedBrace_TreatsAsLiteral()
+    public void Parse_UnclosedBrace_ReturnsError()
     {
         // Arrange
         var input = "hello {world";
 
         // Act
-        var result = StringTemplate.Parse(input);
+        var success = StringTemplate.TryParse(input, out var result, out var error);
 
         // Assert
-        Assert.Equal(2, result.Parts.Count);
+        Assert.False(success);
+        Assert.Null(result);
+        Assert.Contains("unclosed", error);
+    }
 
-        var lit0 = Assert.IsType<StringTemplateLiteralPart>(result.Parts[0]);
-        Assert.Equal("hello ", lit0.Value);
+    [Fact]
+    public void Parse_EmptyPlaceholder_ReturnsError()
+    {
+        // Arrange
+        var input = "hello {}";
 
-        var lit1 = Assert.IsType<StringTemplateLiteralPart>(result.Parts[1]);
-        Assert.Equal("{world", lit1.Value);
+        // Act
+        var success = StringTemplate.TryParse(input, out var result, out var error);
+
+        // Assert
+        Assert.False(success);
+        Assert.Null(result);
+        Assert.Contains("empty placeholder", error);
+    }
+
+    [Fact]
+    public void Parse_MissingName_ReturnsError()
+    {
+        // Arrange
+        var input = "hello {:String}";
+
+        // Act
+        var success = StringTemplate.TryParse(input, out var result, out var error);
+
+        // Assert
+        Assert.False(success);
+        Assert.Null(result);
+        Assert.Contains("missing a name", error);
+    }
+
+    [Fact]
+    public void Parse_MissingType_ReturnsError()
+    {
+        // Arrange
+        var input = "hello {Name:}";
+
+        // Act
+        var success = StringTemplate.TryParse(input, out var result, out var error);
+
+        // Assert
+        Assert.False(success);
+        Assert.Null(result);
+        Assert.Contains("missing a type", error);
     }
 
     [Fact]
@@ -178,10 +229,11 @@ public class Test_StringTemplate
         var input = "{Name}!";
 
         // Act
-        var result = StringTemplate.Parse(input);
+        var success = StringTemplate.TryParse(input, out var result, out _);
 
         // Assert
-        Assert.Equal(2, result.Parts.Count);
+        Assert.True(success);
+        Assert.Equal(2, result!.Parts.Count);
 
         var arg0 = Assert.IsType<StringTemplateArgumentPart>(result.Parts[0]);
         Assert.Equal("Name", arg0.Name);
