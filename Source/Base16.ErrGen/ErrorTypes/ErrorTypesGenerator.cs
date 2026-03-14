@@ -198,12 +198,15 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
                 var (model, assemblyBase) = pair;
                 var hasExplicitBase = model.ExplicitBase is not null;
                 var effectiveBase = model.ExplicitBase ?? assemblyBase.Info;
-                GenerateErrorType(context, model, effectiveBase, hasExplicitBase);
+
+                var validated = ValidateAndParse(context, model, effectiveBase, hasExplicitBase);
+                if (validated is not null)
+                    EmitSource(context, validated);
             }
         );
     }
 
-    private void GenerateErrorType(
+    private static ValidatedErrorType? ValidateAndParse(
         SourceProductionContext context,
         ErrorTypeModel model,
         ErrorBaseTypeInfo? baseTypeInfo,
@@ -219,12 +222,8 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
                     model.Name
                 )
             );
-            return;
+            return null;
         }
-
-        var cb = CSharpCodeBuilder.NewFile();
-
-        var recordType = model.IsStruct ? "record struct" : "record";
 
         var baseTypeSuffix = "";
         if (baseTypeInfo is not null && !hasExplicitBase)
@@ -239,22 +238,12 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
                         baseTypeInfo.FullyQualifiedName
                     )
                 );
-                return;
+                return null;
             }
             baseTypeSuffix = $" : {baseTypeInfo.FullyQualifiedName}";
         }
 
-        cb.AppendLines(
-            $"""
-            using System;
-
-            namespace {model.Namespace};
-
-            {model.AccessModifier} partial {recordType} {model.Name}{baseTypeSuffix}
-            """
-        );
-
-        var errorTemplates = new List<StringTemplate>();
+        var templates = new List<StringTemplate>();
         for (var i = 0; i < model.TemplateStrings.Count; i++)
         {
             var templateLocation =
@@ -277,16 +266,16 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
                         parseError
                     )
                 );
-                return;
+                return null;
             }
 
-            errorTemplates.Add(parsed!);
+            templates.Add(parsed!);
         }
 
         var factoryNames = new HashSet<String>();
-        for (var i = 0; i < errorTemplates.Count; i++)
+        for (var i = 0; i < templates.Count; i++)
         {
-            var namePart = GetFactoryMethodName(errorTemplates[i]);
+            var namePart = GetFactoryMethodName(templates[i]);
 
             if (!factoryNames.Add(namePart))
             {
@@ -303,153 +292,204 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
                         namePart
                     )
                 );
-                return;
+                return null;
             }
         }
+
+        return new ValidatedErrorType(
+            name: model.Name,
+            fullName: model.FullName,
+            @namespace: model.Namespace,
+            accessModifier: model.AccessModifier,
+            isStruct: model.IsStruct,
+            skipMessage: baseTypeInfo is { HasMessageProperty: true, IsInterface: false },
+            baseTypeSuffix: baseTypeSuffix,
+            ctorAccess: model.IsStruct ? "public" : "private",
+            ctorParams: baseTypeInfo?.BaseCtorParamDeclarations is { Length: > 0 } paramDecl
+                ? paramDecl
+                : "",
+            baseCtorCall: baseTypeInfo?.BaseCtorCallArgs is { Length: > 0 } baseCallArgs
+                ? $" : base({baseCallArgs})"
+                : "",
+            ctorCallArgs: baseTypeInfo?.BaseCtorCallArgs is { Length: > 0 } callArgs
+                ? callArgs
+                : "",
+            baseFactoryParamDeclarations: baseTypeInfo?.BaseFactoryParamDeclarations
+                is { Length: > 0 } factoryParamDecls
+                ? factoryParamDecls
+                : null,
+            templates: templates
+        );
+    }
+
+    private static void EmitSource(SourceProductionContext context, ValidatedErrorType type)
+    {
+        var cb = CSharpCodeBuilder.NewFile();
+        var recordType = type.IsStruct ? "record struct" : "record";
+
+        cb.AppendLines(
+            $"""
+            using System;
+
+            namespace {type.Namespace};
+
+            {type.AccessModifier} partial {recordType} {type.Name}{type.BaseTypeSuffix}
+            """
+        );
 
         using (cb.PushScope())
         {
-            var skipMessage = baseTypeInfo is { HasMessageProperty: true, IsInterface: false };
-            if (!skipMessage)
+            if (!type.SkipMessage)
                 cb.AppendLine("public String Message { get; private init; } = default!;");
             cb.AppendLine();
-            var templates = errorTemplates
-                .SelectMany(x => x.Parts)
+
+            var allProperties = type
+                .Templates.SelectMany(x => x.Parts)
                 .OfType<StringTemplateArgumentPart>()
                 .DistinctBy(x => x.Name)
                 .ToList();
-            foreach (var template in templates)
+            foreach (var prop in allProperties)
             {
                 cb.AppendLine(
-                    $"public {template.Type ?? "Object?"} {template.Name} {{ get; private init; }} = default!;"
+                    $"public {prop.Type ?? "Object?"} {prop.Name} {{ get; private init; }} = default!;"
                 );
                 cb.AppendLine();
             }
 
-            var ctorAccess = model.IsStruct ? "public" : "private";
-            var ctorParams = baseTypeInfo?.BaseCtorParamDeclarations is { Length: > 0 } paramDecl
-                ? paramDecl
-                : "";
-            var baseCtorCall = baseTypeInfo?.BaseCtorCallArgs is { Length: > 0 } baseCallArgs
-                ? $" : base({baseCallArgs})"
-                : "";
-            cb.AppendLine($"{ctorAccess} {model.Name}({ctorParams}){baseCtorCall} {{ }}");
+            cb.AppendLine(
+                $"{type.CtorAccess} {type.Name}({type.CtorParams}){type.BaseCtorCall} {{ }}"
+            );
             cb.AppendLine();
 
-            foreach (var template in errorTemplates)
+            foreach (var template in type.Templates)
             {
-                var arguments = template
-                    .Parts.OfType<StringTemplateArgumentPart>()
-                    .DistinctBy(x => x.Name)
-                    .ToList();
-
-                var namePart = GetFactoryMethodName(template);
-
-                var templateArgs = arguments.Select(x =>
-                    $"{x.Type ?? "Object?"} {x.Name.ToCamelCase()}"
-                );
-                var allArgs = baseTypeInfo?.BaseFactoryParamDeclarations
-                    is { Length: > 0 } factoryParams
-                    ? String.Join(", ", new[] { factoryParams }.Concat(templateArgs))
-                    : String.Join(", ", templateArgs);
-
-                cb.AppendLine();
-
-                var templateDisplay = String.Concat(
-                    template.Parts.Select(p =>
-                        p switch
-                        {
-                            StringTemplateLiteralPart lit => lit.Value,
-                            StringTemplateArgumentPart arg => arg.Type is not null
-                                ? $"{{{arg.Name}:{arg.Type}}}"
-                                : $"{{{arg.Name}}}",
-                            _ => "",
-                        }
-                    )
-                );
-                cb.AppendLine(
-                    $"""
-                    /// <summary>
-                    ///     Creates a new <see cref="{model.Name}"/> with the message template:
-                    ///     <para>
-                    ///         <c>{EscapeXml(templateDisplay)}</c>
-                    ///     </para>
-                    /// </summary>
-                    """
-                );
-                if (baseTypeInfo?.BaseFactoryParamDeclarations is { Length: > 0 } baseParamDecls)
-                {
-                    foreach (var decl in baseParamDecls.Split(','))
-                    {
-                        var parts = decl.Trim().Split(' ');
-                        var paramName = parts[parts.Length - 1];
-                        cb.AppendLine(
-                            $"/// <param name=\"{paramName}\">The value passed to the base type constructor.</param>"
-                        );
-                    }
-                }
-                foreach (var arg in arguments)
-                {
-                    cb.AppendLine(
-                        $"/// <param name=\"{arg.Name.ToCamelCase()}\">The value for the <c>{{{EscapeXml(arg.Name)}}}</c> placeholder.</param>"
-                    );
-                }
-                cb.AppendLine(
-                    $"/// <returns>A new instance of <see cref=\"{model.Name}\"/>.</returns>"
-                );
-
-                cb.AppendLine($"public static {model.Name} From{namePart}({allArgs})");
-                using (cb.PushScope())
-                {
-                    if (template.Parts.Count == 1)
-                    {
-                        var value = template.Parts[0] switch
-                        {
-                            StringTemplateLiteralPart part => $"\"{part.Value}\"",
-                            StringTemplateArgumentPart part => $"{part.Name.ToCamelCase()}",
-                            _ => throw new NotSupportedException(
-                                $"Template part of type '{template.Parts[0].GetType().Name}' is not supported."
-                            ),
-                        };
-                        cb.AppendLine($"var message = {value};");
-                    }
-                    else
-                    {
-                        cb.AppendLine($"var message = String.Concat(");
-                        foreach (var templatePart in template.Parts)
-                        {
-                            var isLast = templatePart == template.Parts.Last();
-                            var str = templatePart switch
-                            {
-                                StringTemplateLiteralPart part => $"\"{part.Value}\"",
-                                StringTemplateArgumentPart part => $"{part.Name.ToCamelCase()}",
-                                _ => throw new NotSupportedException(
-                                    $"Template part of type '{templatePart.GetType().Name}' is not supported."
-                                ),
-                            };
-
-                            cb.AppendLineIndented($"{str}{(isLast ? "" : ",")}");
-                        }
-                        cb.AppendLine(");");
-                    }
-                    cb.AppendLine();
-
-                    var ctorCallArgs = baseTypeInfo?.BaseCtorCallArgs is { Length: > 0 } callArgs
-                        ? callArgs
-                        : "";
-                    cb.AppendLine($"return new {model.Name}({ctorCallArgs})");
-                    using (cb.PushScopeExpression())
-                    {
-                        if (!skipMessage)
-                            cb.AppendLine($"Message = message,");
-                        foreach (var argument in arguments)
-                            cb.AppendLine($"{argument.Name} = {argument.Name.ToCamelCase()},");
-                    }
-                }
+                EmitFactoryMethod(cb, type, template);
             }
         }
 
-        context.AddSource($"{model.FullName}.g.cs", cb.ToString());
+        context.AddSource($"{type.FullName}.g.cs", cb.ToString());
+    }
+
+    private static void EmitFactoryMethod(
+        CSharpCodeBuilder cb,
+        ValidatedErrorType type,
+        StringTemplate template
+    )
+    {
+        var arguments = template
+            .Parts.OfType<StringTemplateArgumentPart>()
+            .DistinctBy(x => x.Name)
+            .ToList();
+
+        var namePart = GetFactoryMethodName(template);
+
+        var templateArgs = arguments.Select(x => $"{x.Type ?? "Object?"} {x.Name.ToCamelCase()}");
+        var allArgs = type.BaseFactoryParamDeclarations is not null
+            ? String.Join(", ", new[] { type.BaseFactoryParamDeclarations }.Concat(templateArgs))
+            : String.Join(", ", templateArgs);
+
+        cb.AppendLine();
+        EmitFactoryXmlDoc(cb, type, template, arguments);
+
+        cb.AppendLine($"public static {type.Name} From{namePart}({allArgs})");
+        using (cb.PushScope())
+        {
+            EmitMessageAssignment(cb, template);
+            cb.AppendLine();
+
+            cb.AppendLine($"return new {type.Name}({type.CtorCallArgs})");
+            using (cb.PushScopeExpression())
+            {
+                if (!type.SkipMessage)
+                    cb.AppendLine($"Message = message,");
+                foreach (var argument in arguments)
+                    cb.AppendLine($"{argument.Name} = {argument.Name.ToCamelCase()},");
+            }
+        }
+    }
+
+    private static void EmitFactoryXmlDoc(
+        CSharpCodeBuilder cb,
+        ValidatedErrorType type,
+        StringTemplate template,
+        List<StringTemplateArgumentPart> arguments
+    )
+    {
+        var templateDisplay = String.Concat(
+            template.Parts.Select(p =>
+                p switch
+                {
+                    StringTemplateLiteralPart lit => lit.Value,
+                    StringTemplateArgumentPart arg => arg.Type is not null
+                        ? $"{{{arg.Name}:{arg.Type}}}"
+                        : $"{{{arg.Name}}}",
+                    _ => "",
+                }
+            )
+        );
+        cb.AppendLine(
+            $"""
+            /// <summary>
+            ///     Creates a new <see cref="{type.Name}"/> with the message template:
+            ///     <para>
+            ///         <c>{EscapeXml(templateDisplay)}</c>
+            ///     </para>
+            /// </summary>
+            """
+        );
+        if (type.BaseFactoryParamDeclarations is not null)
+        {
+            foreach (var decl in type.BaseFactoryParamDeclarations.Split(','))
+            {
+                var parts = decl.Trim().Split(' ');
+                var paramName = parts[parts.Length - 1];
+                cb.AppendLine(
+                    $"/// <param name=\"{paramName}\">The value passed to the base type constructor.</param>"
+                );
+            }
+        }
+        foreach (var arg in arguments)
+        {
+            cb.AppendLine(
+                $"/// <param name=\"{arg.Name.ToCamelCase()}\">The value for the <c>{{{EscapeXml(arg.Name)}}}</c> placeholder.</param>"
+            );
+        }
+        cb.AppendLine($"/// <returns>A new instance of <see cref=\"{type.Name}\"/>.</returns>");
+    }
+
+    private static void EmitMessageAssignment(CSharpCodeBuilder cb, StringTemplate template)
+    {
+        if (template.Parts.Count == 1)
+        {
+            var value = template.Parts[0] switch
+            {
+                StringTemplateLiteralPart part => $"\"{part.Value}\"",
+                StringTemplateArgumentPart part => $"{part.Name.ToCamelCase()}",
+                _ => throw new NotSupportedException(
+                    $"Template part of type '{template.Parts[0].GetType().Name}' is not supported."
+                ),
+            };
+            cb.AppendLine($"var message = {value};");
+        }
+        else
+        {
+            cb.AppendLine($"var message = String.Concat(");
+            foreach (var templatePart in template.Parts)
+            {
+                var isLast = templatePart == template.Parts.Last();
+                var str = templatePart switch
+                {
+                    StringTemplateLiteralPart part => $"\"{part.Value}\"",
+                    StringTemplateArgumentPart part => $"{part.Name.ToCamelCase()}",
+                    _ => throw new NotSupportedException(
+                        $"Template part of type '{templatePart.GetType().Name}' is not supported."
+                    ),
+                };
+
+                cb.AppendLineIndented($"{str}{(isLast ? "" : ",")}");
+            }
+            cb.AppendLine(");");
+        }
     }
 
     private static String GetFactoryMethodName(StringTemplate template)
@@ -504,9 +544,7 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
             .OrderByDescending(c => c.Parameters.Length)
             .FirstOrDefault();
 
-        var ctorParams =
-            primaryCtor?.Parameters
-            ?? System.Collections.Immutable.ImmutableArray<IParameterSymbol>.Empty;
+        var ctorParams = primaryCtor?.Parameters ?? ImmutableArray<IParameterSymbol>.Empty;
 
         var baseCtorParamDeclarations = String.Join(
             ", ",
