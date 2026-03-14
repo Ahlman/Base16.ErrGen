@@ -1,5 +1,3 @@
-using Xunit;
-
 namespace Base16.ErrGen.Tests.ErrorTypes;
 
 public class Test_ErrorTypesGenerator
@@ -21,7 +19,7 @@ public class Test_ErrorTypesGenerator
     }
 
     [Fact]
-    public void Generates_Factory_Method_For_Single_Untyped_Argument()
+    public async Task Generates_Factory_Method_For_Single_Untyped_Argument()
     {
         // Arrange
         var source = """
@@ -37,15 +35,11 @@ public class Test_ErrorTypesGenerator
         var result = GeneratorTestHelper.RunGenerator(source);
 
         // Assert
-        result.AssertNoErrors();
-        var errorSource = result.FindSource("UserNotFoundError.g.cs");
-        Assert.NotNull(errorSource);
-        Assert.Contains("public static UserNotFoundError FromName(Object? name)", errorSource);
-        Assert.Contains("public String Message { get; private init; }", errorSource);
+        await VerifyGeneratedSource(result, "UserNotFoundError.g.cs");
     }
 
     [Fact]
-    public void Generates_Factory_Method_For_Single_Typed_Argument()
+    public async Task Generates_Factory_Method_For_Single_Typed_Argument()
     {
         // Arrange
         var source = """
@@ -61,14 +55,11 @@ public class Test_ErrorTypesGenerator
         var result = GeneratorTestHelper.RunGenerator(source);
 
         // Assert
-        result.AssertNoErrors();
-        var errorSource = result.FindSource("UserNotFoundError.g.cs");
-        Assert.NotNull(errorSource);
-        Assert.Contains("public static UserNotFoundError FromName(String name)", errorSource);
+        await VerifyGeneratedSource(result, "UserNotFoundError.g.cs");
     }
 
     [Fact]
-    public void Generates_Factory_Method_For_Multiple_Arguments()
+    public async Task Generates_Factory_Method_For_Multiple_Arguments()
     {
         // Arrange
         var source = """
@@ -84,17 +75,11 @@ public class Test_ErrorTypesGenerator
         var result = GeneratorTestHelper.RunGenerator(source);
 
         // Assert
-        result.AssertNoErrors();
-        var errorSource = result.FindSource("HttpError.g.cs");
-        Assert.NotNull(errorSource);
-        Assert.Contains(
-            "public static HttpError FromMethodPathAndStatusCode(String method, String path, Int32 statusCode)",
-            errorSource
-        );
+        await VerifyGeneratedSource(result, "HttpError.g.cs");
     }
 
     [Fact]
-    public void Generates_Multiple_Factory_Methods_For_Multiple_Attributes()
+    public async Task Generates_Multiple_Factory_Methods_For_Multiple_Attributes()
     {
         // Arrange
         var source = """
@@ -111,15 +96,11 @@ public class Test_ErrorTypesGenerator
         var result = GeneratorTestHelper.RunGenerator(source);
 
         // Assert
-        result.AssertNoErrors();
-        var errorSource = result.FindSource("UserNotFoundError.g.cs");
-        Assert.NotNull(errorSource);
-        Assert.Contains("public static UserNotFoundError FromName(String name)", errorSource);
-        Assert.Contains("public static UserNotFoundError FromId(Int32 id)", errorSource);
+        await VerifyGeneratedSource(result, "UserNotFoundError.g.cs");
     }
 
     [Fact]
-    public void Generates_Correct_Namespace()
+    public async Task Generates_Correct_Namespace()
     {
         // Arrange
         var source = """
@@ -135,16 +116,11 @@ public class Test_ErrorTypesGenerator
         var result = GeneratorTestHelper.RunGenerator(source);
 
         // Assert
-        result.AssertNoErrors();
-        var errorSource = result.FindSource("CustomError.g.cs");
-        Assert.NotNull(errorSource);
-        Assert.Contains("namespace My.Custom.Namespace;", errorSource);
-        Assert.Contains("var message = \"Something went wrong\";", errorSource);
-        Assert.DoesNotContain("String.Concat", errorSource);
+        await VerifyGeneratedSource(result, "CustomError.g.cs");
     }
 
     [Fact]
-    public void Respects_Internal_Access_Modifier()
+    public async Task Respects_Internal_Access_Modifier()
     {
         // Arrange
         var source = """
@@ -160,14 +136,11 @@ public class Test_ErrorTypesGenerator
         var result = GeneratorTestHelper.RunGenerator(source);
 
         // Assert
-        result.AssertNoErrors();
-        var errorSource = result.FindSource("InternalError.g.cs");
-        Assert.NotNull(errorSource);
-        Assert.Contains("internal partial record InternalError", errorSource);
+        await VerifyGeneratedSource(result, "InternalError.g.cs");
     }
 
     [Fact]
-    public void Generates_String_Concat_With_Literal_And_Argument_Parts()
+    public async Task Generates_String_Concat_With_Literal_And_Argument_Parts()
     {
         // Arrange
         var source = """
@@ -183,13 +156,7 @@ public class Test_ErrorTypesGenerator
         var result = GeneratorTestHelper.RunGenerator(source);
 
         // Assert
-        result.AssertNoErrors();
-        var errorSource = result.FindSource("GreetingError.g.cs");
-        Assert.NotNull(errorSource);
-        Assert.Contains("String.Concat(", errorSource);
-        Assert.Contains("\"Hello \"", errorSource);
-        Assert.Contains("name", errorSource);
-        Assert.Contains("\"!\"", errorSource);
+        await VerifyGeneratedSource(result, "GreetingError.g.cs");
     }
 
     [Fact]
@@ -211,7 +178,7 @@ public class Test_ErrorTypesGenerator
     }
 
     [Fact]
-    public void BaseType_Interface_On_Record_Class()
+    public async Task BaseType_Interface_On_Record_Class()
     {
         // Arrange
         var source = """
@@ -235,17 +202,11 @@ public class Test_ErrorTypesGenerator
         var result = GeneratorTestHelper.RunGenerator(source);
 
         // Assert
-        result.AssertNoErrors();
-        var errorSource = result.FindSource("MyError.g.cs");
-        Assert.NotNull(errorSource);
-        Assert.Contains(
-            "public partial record MyError : global::TestNamespace.IMyError",
-            errorSource
-        );
+        await VerifyGeneratedSource(result, "MyError.g.cs");
     }
 
     [Fact]
-    public void BaseType_Interface_On_Record_Struct()
+    public async Task BaseType_Interface_On_Record_Struct()
     {
         // Arrange
         var source = """
@@ -265,13 +226,7 @@ public class Test_ErrorTypesGenerator
         var result = GeneratorTestHelper.RunGenerator(source);
 
         // Assert
-        result.AssertNoErrors();
-        var errorSource = result.FindSource("MyError.g.cs");
-        Assert.NotNull(errorSource);
-        Assert.Contains(
-            "public partial record struct MyError : global::TestNamespace.IMyError",
-            errorSource
-        );
+        await VerifyGeneratedSource(result, "MyError.g.cs");
     }
 
     [Fact]
@@ -299,7 +254,7 @@ public class Test_ErrorTypesGenerator
     }
 
     [Fact]
-    public void BaseType_Interface_With_Message_Still_Generates_Message()
+    public async Task BaseType_Interface_With_Message_Still_Generates_Message()
     {
         // Arrange
         var source = """
@@ -323,14 +278,11 @@ public class Test_ErrorTypesGenerator
         var result = GeneratorTestHelper.RunGenerator(source);
 
         // Assert
-        result.AssertNoErrors();
-        var errorSource = result.FindSource("MyError.g.cs");
-        Assert.NotNull(errorSource);
-        Assert.Contains("public String Message { get; private init; }", errorSource);
+        await VerifyGeneratedSource(result, "MyError.g.cs");
     }
 
     [Fact]
-    public void BaseType_Interface_Without_Message_Generates_Message()
+    public async Task BaseType_Interface_Without_Message_Generates_Message()
     {
         // Arrange
         var source = """
@@ -350,10 +302,7 @@ public class Test_ErrorTypesGenerator
         var result = GeneratorTestHelper.RunGenerator(source);
 
         // Assert
-        result.AssertNoErrors();
-        var errorSource = result.FindSource("MyError.g.cs");
-        Assert.NotNull(errorSource);
-        Assert.Contains("public String Message { get; private init; }", errorSource);
+        await VerifyGeneratedSource(result, "MyError.g.cs");
     }
 
     [Fact]
@@ -385,7 +334,7 @@ public class Test_ErrorTypesGenerator
     }
 
     [Fact]
-    public void BaseType_Abstract_Record_With_Positional_Message_Generates_Base_Constructor_Call()
+    public async Task BaseType_Abstract_Record_With_Positional_Message_Generates_Base_Constructor_Call()
     {
         // Arrange
         var source = """
@@ -406,19 +355,13 @@ public class Test_ErrorTypesGenerator
         var result = GeneratorTestHelper.RunGenerator(source);
 
         // Assert
-        result.AssertNoErrors();
-        var errorSource = result.FindSource("MyError.g.cs");
-        Assert.NotNull(errorSource);
-        Assert.Contains(": global::TestNamespace.Error", errorSource);
-        Assert.DoesNotContain("public String Message { get; private init; }", errorSource);
-        Assert.Contains("base(message)", errorSource);
+        await VerifyGeneratedSource(result, "MyError.g.cs");
     }
 
     [Fact]
-    public void BaseType_Record_With_Non_Message_Ctor_Params_Still_Sets_Message()
+    public async Task BaseType_Record_With_Non_Message_Ctor_Params_Still_Sets_Message()
     {
-        // Arrange — base record has ctor params but NOT Message,
-        // so the generated type must set Message via object initializer
+        // Arrange
         var source = """
             using Base16.ErrGen;
             using System;
@@ -437,15 +380,11 @@ public class Test_ErrorTypesGenerator
         var result = GeneratorTestHelper.RunGenerator(source);
 
         // Assert
-        result.AssertNoErrors();
-        var errorSource = result.FindSource("MyError.g.cs");
-        Assert.NotNull(errorSource);
-        Assert.Contains("Message = message,", errorSource);
-        Assert.Contains("base(traceId)", errorSource);
+        await VerifyGeneratedSource(result, "MyError.g.cs");
     }
 
     [Fact]
-    public void BaseType_Abstract_Record_With_Extra_Ctor_Params_Adds_To_Factory_And_Constructor()
+    public async Task BaseType_Abstract_Record_With_Extra_Ctor_Params_Adds_To_Factory_And_Constructor()
     {
         // Arrange
         var source = """
@@ -466,20 +405,11 @@ public class Test_ErrorTypesGenerator
         var result = GeneratorTestHelper.RunGenerator(source);
 
         // Assert
-        result.AssertNoErrors();
-        var errorSource = result.FindSource("InvalidAnswer.g.cs");
-        Assert.NotNull(errorSource);
-        Assert.Contains(
-            "InvalidAnswer(string message, global::System.Guid userId) : base(message, userId)",
-            errorSource
-        );
-        Assert.Contains("FromAnswer(global::System.Guid userId, Int32 answer)", errorSource);
-        Assert.Contains("new InvalidAnswer(message, userId)", errorSource);
-        Assert.DoesNotContain("public String Message { get; private init; }", errorSource);
+        await VerifyGeneratedSource(result, "InvalidAnswer.g.cs");
     }
 
     [Fact]
-    public void Explicit_BaseType_Derived_Record_With_Inherited_Message_Skips_Message()
+    public async Task Explicit_BaseType_Derived_Record_With_Inherited_Message_Skips_Message()
     {
         // Arrange
         var source = """
@@ -499,15 +429,11 @@ public class Test_ErrorTypesGenerator
         var result = GeneratorTestHelper.RunGenerator(source);
 
         // Assert
-        result.AssertNoErrors();
-        var errorSource = result.FindSource("AuthError.g.cs");
-        Assert.NotNull(errorSource);
-        Assert.DoesNotContain("public String Message { get; private init; }", errorSource);
-        Assert.Contains("base(message, traceId)", errorSource);
+        await VerifyGeneratedSource(result, "AuthError.g.cs");
     }
 
     [Fact]
-    public void Explicit_BaseType_On_Record_Overrides_Assembly_ErrorBaseType()
+    public async Task Explicit_BaseType_On_Record_Overrides_Assembly_ErrorBaseType()
     {
         // Arrange
         var source = """
@@ -532,21 +458,11 @@ public class Test_ErrorTypesGenerator
         var result = GeneratorTestHelper.RunGenerator(source);
 
         // Assert
-        result.AssertNoErrors();
-
-        var defaultSource = result.FindSource("UsesDefault.g.cs");
-        Assert.NotNull(defaultSource);
-        Assert.Contains(": global::TestNamespace.DefaultError", defaultSource);
-
-        var explicitSource = result.FindSource("UsesExplicit.g.cs");
-        Assert.NotNull(explicitSource);
-        Assert.DoesNotContain(": global::", explicitSource);
-        Assert.Contains("base(message, traceId)", explicitSource);
-        Assert.Contains("global::System.Guid traceId", explicitSource);
+        await VerifyGeneratedSources(result, ["UsesDefault.g.cs", "UsesExplicit.g.cs"]);
     }
 
     [Fact]
-    public void Explicit_BaseType_Without_Assembly_ErrorBaseType()
+    public async Task Explicit_BaseType_Without_Assembly_ErrorBaseType()
     {
         // Arrange
         var source = """
@@ -565,16 +481,11 @@ public class Test_ErrorTypesGenerator
         var result = GeneratorTestHelper.RunGenerator(source);
 
         // Assert
-        result.AssertNoErrors();
-        var errorSource = result.FindSource("MyError.g.cs");
-        Assert.NotNull(errorSource);
-        Assert.DoesNotContain(": global::", errorSource);
-        Assert.Contains("base(message)", errorSource);
-        Assert.DoesNotContain("public String Message { get; private init; }", errorSource);
+        await VerifyGeneratedSource(result, "MyError.g.cs");
     }
 
     [Fact]
-    public void Generates_String_Concat_With_Literal_And_Argument_Parts_For_Struct()
+    public async Task Generates_String_Concat_With_Literal_And_Argument_Parts_For_Struct()
     {
         // Arrange
         var source = """
@@ -590,13 +501,7 @@ public class Test_ErrorTypesGenerator
         var result = GeneratorTestHelper.RunGenerator(source);
 
         // Assert
-        result.AssertNoErrors();
-        var errorSource = result.FindSource("GreetingError.g.cs");
-        Assert.NotNull(errorSource);
-        Assert.Contains("String.Concat(", errorSource);
-        Assert.Contains("\"Hello \"", errorSource);
-        Assert.Contains("name", errorSource);
-        Assert.Contains("\"!\"", errorSource);
+        await VerifyGeneratedSource(result, "GreetingError.g.cs");
     }
 
     [Fact]
@@ -701,7 +606,7 @@ public class Test_ErrorTypesGenerator
     }
 
     [Fact]
-    public void No_BaseType_Attribute_Preserves_Existing_Behavior()
+    public async Task No_BaseType_Attribute_Preserves_Existing_Behavior()
     {
         // Arrange
         var source = """
@@ -717,15 +622,11 @@ public class Test_ErrorTypesGenerator
         var result = GeneratorTestHelper.RunGenerator(source);
 
         // Assert
-        result.AssertNoErrors();
-        var errorSource = result.FindSource("UserNotFoundError.g.cs");
-        Assert.NotNull(errorSource);
-        Assert.Contains("public String Message { get; private init; }", errorSource);
-        Assert.Contains("public static UserNotFoundError FromName(String name)", errorSource);
+        await VerifyGeneratedSource(result, "UserNotFoundError.g.cs");
     }
 
     [Fact]
-    public void BaseType_In_Different_Namespace_Uses_Fully_Qualified_Name()
+    public async Task BaseType_In_Different_Namespace_Uses_Fully_Qualified_Name()
     {
         // Arrange
         var source = """
@@ -749,10 +650,7 @@ public class Test_ErrorTypesGenerator
         var result = GeneratorTestHelper.RunGenerator(source);
 
         // Assert
-        result.AssertNoErrors();
-        var errorSource = result.FindSource("MyError.g.cs");
-        Assert.NotNull(errorSource);
-        Assert.Contains("global::Other.Namespace.IMyError", errorSource);
+        await VerifyGeneratedSource(result, "MyError.g.cs");
     }
 
     [Fact]

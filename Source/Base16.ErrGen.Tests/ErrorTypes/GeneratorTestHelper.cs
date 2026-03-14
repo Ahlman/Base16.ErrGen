@@ -2,7 +2,6 @@ using System.Collections.Immutable;
 using Base16.ErrGen.ErrorTypes;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Xunit;
 
 namespace Base16.ErrGen.Tests.ErrorTypes;
 

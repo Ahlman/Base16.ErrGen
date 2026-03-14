@@ -7,3 +7,6 @@ TestResults/
 
 # VsCode
 .vscode/
+
+# Verify snapshot testing
+__snapshots__/*.received.*

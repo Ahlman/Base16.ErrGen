@@ -1,5 +1,4 @@
 using Base16.ErrGen.ErrorTypes;
-using Xunit;
 
 namespace Base16.ErrGen.Tests.ErrorTypes;
 
