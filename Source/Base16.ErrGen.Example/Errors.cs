@@ -36,3 +36,19 @@ public partial record PaymentError;
 [Error("Session '{SessionId:String}' has expired")]
 [Error("Session was revoked by '{Admin:String}'")]
 public partial record SessionError;
+
+// --- Explicit base type inheritance ---
+
+// Abstract base record with positional Message parameter
+public abstract record Error(String Message);
+
+// Abstract base record with additional constructor parameters, inheriting from Error
+public abstract record TracedError(String Message, Guid TraceId) : Error(Message);
+
+// Explicit base type: inherits from Error instead of any assembly-level ErrorBaseType
+[Error("Database connection to '{Host:String}' failed")]
+public partial record DatabaseError : Error;
+
+// Explicit base type with extra constructor params: TraceId is required in the factory method
+[Error("Authorization failed for user '{UserId:String}'")]
+public partial record AuthError : TracedError;

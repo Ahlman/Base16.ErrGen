@@ -5,5 +5,8 @@ namespace Base16.ErrGen.ErrorTypes;
 internal sealed record ErrorBaseTypeInfo(
     String FullyQualifiedName,
     Boolean IsInterface,
-    Boolean HasMessageProperty
+    Boolean HasMessageProperty,
+    String BaseCtorParamDeclarations,
+    String BaseCtorCallArgs,
+    String BaseFactoryParamDeclarations
 );

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using Base16.ErrGen.Extensions;
 using Base16.ErrGen.Utils.Code;
@@ -145,10 +145,7 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
                     );
                 }
 
-                var messageProperty = typeSymbol
-                    .GetMembers()
-                    .OfType<IPropertySymbol>()
-                    .FirstOrDefault(p => p.Name == "Message");
+                var messageProperty = FindPropertyInHierarchy(typeSymbol, "Message");
 
                 if (
                     messageProperty is not null
@@ -165,22 +162,31 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
                     );
                 }
 
-                return (
-                    Info: (ErrorBaseTypeInfo?)
-                        new ErrorBaseTypeInfo(
-                            typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-                            typeSymbol.TypeKind == TypeKind.Interface,
-                            messageProperty is not null
-                        ),
-                    Diagnostic: null
-                );
+                return (Info: (ErrorBaseTypeInfo?)BuildBaseTypeInfo(typeSymbol), Diagnostic: null);
             }
         );
 
         var errorTypes = context.SyntaxProvider.ForAttributeWithMetadataName(
             ErrorAttributeName,
             predicate: (node, _) => node is RecordDeclarationSyntax,
-            transform: (ctx, _) => (INamedTypeSymbol)ctx.TargetSymbol
+            transform: static (ctx, _) =>
+            {
+                var symbol = (INamedTypeSymbol)ctx.TargetSymbol;
+
+                ErrorBaseTypeInfo? explicitBase = null;
+                if (
+                    symbol.BaseType is
+                    {
+                        SpecialType: not SpecialType.System_Object
+                            and not SpecialType.System_ValueType,
+                    } baseType
+                )
+                {
+                    explicitBase = BuildBaseTypeInfo(baseType);
+                }
+
+                return (Symbol: symbol, ExplicitBase: explicitBase);
+            }
         );
 
         var combined = errorTypes.Combine(baseTypeInfo);
@@ -198,16 +204,24 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
             combined,
             (context, pair) =>
             {
-                var (errorType, baseType) = pair;
-                GenerateExtensionsForSucessResults(context, errorType, baseType.Info);
+                var (errorInfo, assemblyBase) = pair;
+                var hasExplicitBase = errorInfo.ExplicitBase is not null;
+                var effectiveBase = errorInfo.ExplicitBase ?? assemblyBase.Info;
+                GenerateExtensionsForSuccessResults(
+                    context,
+                    errorInfo.Symbol,
+                    effectiveBase,
+                    hasExplicitBase
+                );
             }
         );
     }
 
-    private void GenerateExtensionsForSucessResults(
+    private void GenerateExtensionsForSuccessResults(
         SourceProductionContext context,
         INamedTypeSymbol errorType,
-        ErrorBaseTypeInfo? baseTypeInfo
+        ErrorBaseTypeInfo? baseTypeInfo,
+        Boolean hasExplicitBase
     )
     {
 #pragma warning disable IDE0072 // Populate switch
@@ -225,7 +239,7 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
         var recordType = isStruct ? "record struct" : "record";
 
         var baseTypeSuffix = "";
-        if (baseTypeInfo is not null)
+        if (baseTypeInfo is not null && !hasExplicitBase)
         {
             if (!baseTypeInfo.IsInterface && isStruct)
             {
@@ -279,7 +293,14 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
                 cb.AppendLine();
             }
 
-            cb.AppendLine($"{(isStruct ? "public" : "private")} {errorType.Name}() {{ }}");
+            var ctorAccess = isStruct ? "public" : "private";
+            var ctorParams = baseTypeInfo?.BaseCtorParamDeclarations is { Length: > 0 } paramDecl
+                ? paramDecl
+                : "";
+            var baseCtorCall = baseTypeInfo?.BaseCtorCallArgs is { Length: > 0 } baseCallArgs
+                ? $" : base({baseCallArgs})"
+                : "";
+            cb.AppendLine($"{ctorAccess} {errorType.Name}({ctorParams}){baseCtorCall} {{ }}");
             cb.AppendLine();
 
             foreach (var template in errorTemplates)
@@ -300,34 +321,44 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
                     ]),
                 };
 
-                var args = String.Join(
-                    ", ",
-                    arguments.Select(x => $"{x.Type ?? "Object?"} {x.Name.ToCamelCase()}")
+                var templateArgs = arguments.Select(x =>
+                    $"{x.Type ?? "Object?"} {x.Name.ToCamelCase()}"
                 );
+                var allArgs = baseTypeInfo?.BaseFactoryParamDeclarations
+                    is { Length: > 0 } factoryParams
+                    ? String.Join(", ", new[] { factoryParams }.Concat(templateArgs))
+                    : String.Join(", ", templateArgs);
 
                 cb.AppendLine();
-                cb.AppendLine($"public static {errorType.Name} From{namePart}({args})");
+                cb.AppendLine($"public static {errorType.Name} From{namePart}({allArgs})");
                 using (cb.PushScope())
                 {
-                    cb.AppendLine($"return new {errorType.Name}");
+                    cb.AppendLine($"var message = String.Concat(");
+                    foreach (var templatePart in template.Parts)
+                    {
+                        var isLast = templatePart == template.Parts.Last();
+                        var str = templatePart switch
+                        {
+                            StringTemplateLiteralPart part => $"\"{part.Value}\"",
+                            StringTemplateArgumentPart part => $"{part.Name.ToCamelCase()}",
+                            _ => throw new NotSupportedException(
+                                $"Template part of type '{templatePart.GetType().Name}' is not supported."
+                            ),
+                        };
+
+                        cb.AppendLineIndented($"{str}{(isLast ? "" : ",")}");
+                    }
+                    cb.AppendLine(");");
+                    cb.AppendLine();
+
+                    var ctorCallArgs = baseTypeInfo?.BaseCtorCallArgs is { Length: > 0 } callArgs
+                        ? callArgs
+                        : "";
+                    cb.AppendLine($"return new {errorType.Name}({ctorCallArgs})");
                     using (cb.PushScopeExpression())
                     {
-                        cb.AppendLine($"Message = String.Concat(");
-                        foreach (var templatePart in template.Parts)
-                        {
-                            var isLast = templatePart == template.Parts.Last();
-                            var str = templatePart switch
-                            {
-                                StringTemplateLiteralPart part => $"\"{part.Value}\"",
-                                StringTemplateArgumentPart part => $"{part.Name.ToCamelCase()}",
-                                _ => throw new NotSupportedException(
-                                    $"Template part of type '{templatePart.GetType().Name}' is not supported."
-                                ),
-                            };
-
-                            cb.AppendLineIndented($"{str}{(isLast ? "" : ",")}");
-                        }
-                        cb.AppendLine($"),");
+                        if (String.IsNullOrEmpty(ctorCallArgs))
+                            cb.AppendLine($"Message = message,");
                         foreach (var argument in arguments)
                             cb.AppendLine($"{argument.Name} = {argument.Name.ToCamelCase()},");
                     }
@@ -336,5 +367,72 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
         }
 
         context.AddSource($"{errorType.ToDisplayString()}.g.cs", cb.ToString());
+    }
+
+    private static IPropertySymbol? FindPropertyInHierarchy(
+        INamedTypeSymbol typeSymbol,
+        String name
+    )
+    {
+        var current = typeSymbol;
+        while (current is not null)
+        {
+            var prop = current
+                .GetMembers()
+                .OfType<IPropertySymbol>()
+                .FirstOrDefault(p => p.Name == name);
+            if (prop is not null)
+                return prop;
+            current = current.BaseType;
+        }
+        return null;
+    }
+
+    private static ErrorBaseTypeInfo BuildBaseTypeInfo(INamedTypeSymbol typeSymbol)
+    {
+        var messageProperty = FindPropertyInHierarchy(typeSymbol, "Message");
+
+        var primaryCtor = typeSymbol
+            .InstanceConstructors.Where(c =>
+                !(
+                    c.Parameters.Length == 1
+                    && SymbolEqualityComparer.Default.Equals(c.Parameters[0].Type, typeSymbol)
+                )
+            )
+            .OrderByDescending(c => c.Parameters.Length)
+            .FirstOrDefault();
+
+        var ctorParams =
+            primaryCtor?.Parameters
+            ?? System.Collections.Immutable.ImmutableArray<IParameterSymbol>.Empty;
+
+        var baseCtorParamDeclarations = String.Join(
+            ", ",
+            ctorParams.Select(p =>
+                $"{p.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)} {p.Name.ToCamelCase()}"
+            )
+        );
+
+        var baseCtorCallArgs = String.Join(", ", ctorParams.Select(p => p.Name.ToCamelCase()));
+
+        var baseFactoryParamDeclarations = String.Join(
+            ", ",
+            ctorParams
+                .Where(p =>
+                    !(p.Name == "Message" && p.Type.SpecialType == SpecialType.System_String)
+                )
+                .Select(p =>
+                    $"{p.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)} {p.Name.ToCamelCase()}"
+                )
+        );
+
+        return new ErrorBaseTypeInfo(
+            typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+            typeSymbol.TypeKind == TypeKind.Interface,
+            messageProperty is not null,
+            baseCtorParamDeclarations,
+            baseCtorCallArgs,
+            baseFactoryParamDeclarations
+        );
     }
 }

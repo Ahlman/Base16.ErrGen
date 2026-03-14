@@ -63,6 +63,23 @@ public static class Program
 
         Console.WriteLine();
 
+        // --- Explicit base type inheritance ---
+        Console.WriteLine("--- Explicit Base Type Inheritance ---");
+
+        // Inherits from Error (has Message positional param)
+        var dbErr = DatabaseError.FromHost("db.example.com");
+        Console.WriteLine($"DatabaseError:      {dbErr.Message}");
+        Console.WriteLine($"  is Error:      {dbErr is Error}");
+
+        // Inherits from TracedError (has Message + TraceId positional params)
+        var traceId = System.Guid.NewGuid();
+        var authErr = AuthError.FromUserId(traceId, "user-42");
+        Console.WriteLine($"AuthError:          {authErr.Message}");
+        Console.WriteLine($"  TraceId:          {authErr.TraceId}");
+        Console.WriteLine($"  is TracedError:   {authErr is TracedError}");
+
+        Console.WriteLine();
+
         // --- OneOf<> integration ---
         Console.WriteLine("--- OneOf<> Integration ---");
 

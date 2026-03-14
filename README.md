@@ -38,25 +38,22 @@ public partial record struct UserNotFoundError
 
     public UserNotFoundError() { }
 
-    public UserNotFoundError(String message)
-    {
-        Message = message;
-    }
-
     public static UserNotFoundError FromName(String name)
     {
+        var message = String.Concat("User '", name, "' was not found");
         return new UserNotFoundError
         {
-            Message = String.Concat("User '", name, "' was not found"),
+            Message = message,
             Name = name,
         };
     }
 
     public static UserNotFoundError FromId(Int32 id)
     {
+        var message = String.Concat("User with ID ", id, " was not found");
         return new UserNotFoundError
         {
-            Message = String.Concat("User with ID ", id, " was not found"),
+            Message = message,
             Id = id,
         };
     }
@@ -169,6 +166,80 @@ Both interfaces and classes are supported. Classes work with record classes only
 
 // Class — works with record classes only
 [assembly: ErrorBaseType(typeof(BaseError))]
+```
+
+### Abstract Records with Positional Parameters
+
+Abstract records with positional parameters are supported as base types. The generator chains to the base constructor automatically:
+
+```csharp
+public abstract record Error(String Message);
+
+[assembly: ErrorBaseType(typeof(Error))]
+
+[Error("Something went wrong")]
+public partial record MyError;
+```
+
+The generated constructor chains to the base record's constructor:
+
+```csharp
+public partial record MyError : global::Error
+{
+    private MyError(string message) : base(message) { }
+
+    public static MyError From()
+    {
+        var message = String.Concat("Something went wrong");
+        return new MyError(message);
+    }
+}
+```
+
+If the base record has additional constructor parameters beyond `Message`, they are automatically included as the first parameters in all factory methods:
+
+```csharp
+public abstract record Error(String Message);
+public abstract record TracedError(String Message, Guid TraceId) : Error(Message);
+
+[assembly: ErrorBaseType(typeof(TracedError))]
+
+[Error("Authorization failed for user '{UserId:String}'")]
+public partial record AuthError;
+
+// Generated factory method:
+// public static AuthError FromUserId(Guid traceId, String userId)
+//
+// Usage:
+var error = AuthError.FromUserId(Guid.NewGuid(), "user-42");
+```
+
+### Explicit Per-Record Base Type
+
+You can override the assembly-level `ErrorBaseType` for individual error records by declaring the base type directly:
+
+```csharp
+public abstract record Error(String Message);
+public abstract record TracedError(String Message, Guid TraceId) : Error(Message);
+
+[assembly: ErrorBaseType(typeof(Error))]
+
+// Uses Error (from assembly-level ErrorBaseType)
+[Error("Payment of {Amount:Decimal} failed")]
+public partial record PaymentError;
+
+// Uses TracedError (explicitly declared, overrides assembly-level)
+[Error("Authorization failed for user '{UserId:String}'")]
+public partial record AuthError : TracedError;
+```
+
+This also works without any `[ErrorBaseType]` attribute — just declare the base type on the record:
+
+```csharp
+public abstract record Error(String Message);
+
+[Error("Database connection to '{Host:String}' failed")]
+public partial record DatabaseError : Error;
 ```
 
 ## Usage with OneOf

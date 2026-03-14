@@ -437,6 +437,183 @@ public class Test_ErrorTypesGenerator
     }
 
     [Fact]
+    public void BaseType_Abstract_Record_With_Positional_Message_Generates_Base_Constructor_Call()
+    {
+        // Arrange
+        var source = """
+            using Base16.ErrGen;
+            using System;
+
+            [assembly: ErrorBaseType(typeof(TestNamespace.Error))]
+
+            namespace TestNamespace;
+
+            public abstract record Error(String Message);
+
+            [Error("Something went wrong")]
+            public partial record MyError;
+            """;
+
+        // Act
+        var (diagnostics, generatedSources) = GeneratorTestHelper.RunGenerator(source);
+
+        // Assert
+        Assert.Empty(diagnostics);
+        var errorSource = GeneratorTestHelper.FindGeneratedSource(
+            generatedSources,
+            "partial record MyError"
+        );
+        Assert.NotNull(errorSource);
+        Assert.Contains(": global::TestNamespace.Error", errorSource);
+        Assert.DoesNotContain("public String Message { get; private set; }", errorSource);
+        Assert.Contains("base(message)", errorSource);
+    }
+
+    [Fact]
+    public void BaseType_Abstract_Record_With_Extra_Ctor_Params_Adds_To_Factory_And_Constructor()
+    {
+        // Arrange
+        var source = """
+            using Base16.ErrGen;
+            using System;
+
+            [assembly: ErrorBaseType(typeof(TestNamespace.Error))]
+
+            namespace TestNamespace;
+
+            public abstract record Error(String Message, Guid UserId);
+
+            [Error("The answer {Answer:Int32} was incorrect.")]
+            public sealed partial record InvalidAnswer;
+            """;
+
+        // Act
+        var (diagnostics, generatedSources) = GeneratorTestHelper.RunGenerator(source);
+
+        // Assert
+        Assert.Empty(diagnostics);
+        var errorSource = GeneratorTestHelper.FindGeneratedSource(
+            generatedSources,
+            "partial record InvalidAnswer"
+        );
+        Assert.NotNull(errorSource);
+        Assert.Contains(
+            "InvalidAnswer(string message, global::System.Guid userId) : base(message, userId)",
+            errorSource
+        );
+        Assert.Contains("FromAnswer(global::System.Guid userId, Int32 answer)", errorSource);
+        Assert.Contains("new InvalidAnswer(message, userId)", errorSource);
+        Assert.DoesNotContain("public String Message { get; private set; }", errorSource);
+    }
+
+    [Fact]
+    public void Explicit_BaseType_Derived_Record_With_Inherited_Message_Skips_Message()
+    {
+        // Arrange
+        var source = """
+            using Base16.ErrGen;
+            using System;
+
+            namespace TestNamespace;
+
+            public abstract record Error(String Message);
+            public abstract record TracedError(String Message, Guid TraceId) : Error(Message);
+
+            [Error("Auth failed for '{UserId:String}'")]
+            public partial record AuthError : TracedError;
+            """;
+
+        // Act
+        var (diagnostics, generatedSources) = GeneratorTestHelper.RunGenerator(source);
+
+        // Assert
+        Assert.Empty(diagnostics);
+        var errorSource = GeneratorTestHelper.FindGeneratedSource(
+            generatedSources,
+            "partial record AuthError"
+        );
+        Assert.NotNull(errorSource);
+        Assert.DoesNotContain("public String Message { get; private set; }", errorSource);
+        Assert.Contains("base(message, traceId)", errorSource);
+    }
+
+    [Fact]
+    public void Explicit_BaseType_On_Record_Overrides_Assembly_ErrorBaseType()
+    {
+        // Arrange
+        var source = """
+            using Base16.ErrGen;
+            using System;
+
+            [assembly: ErrorBaseType(typeof(TestNamespace.DefaultError))]
+
+            namespace TestNamespace;
+
+            public abstract record DefaultError(String Message);
+            public abstract record SpecialError(String Message, Guid TraceId);
+
+            [Error("Default error")]
+            public partial record UsesDefault;
+
+            [Error("Special error")]
+            public partial record UsesExplicit : SpecialError;
+            """;
+
+        // Act
+        var (diagnostics, generatedSources) = GeneratorTestHelper.RunGenerator(source);
+
+        // Assert
+        Assert.Empty(diagnostics);
+
+        var defaultSource = GeneratorTestHelper.FindGeneratedSource(
+            generatedSources,
+            "partial record UsesDefault"
+        );
+        Assert.NotNull(defaultSource);
+        Assert.Contains(": global::TestNamespace.DefaultError", defaultSource);
+
+        var explicitSource = GeneratorTestHelper.FindGeneratedSource(
+            generatedSources,
+            "partial record UsesExplicit"
+        );
+        Assert.NotNull(explicitSource);
+        Assert.DoesNotContain(": global::", explicitSource);
+        Assert.Contains("base(message, traceId)", explicitSource);
+        Assert.Contains("global::System.Guid traceId", explicitSource);
+    }
+
+    [Fact]
+    public void Explicit_BaseType_Without_Assembly_ErrorBaseType()
+    {
+        // Arrange
+        var source = """
+            using Base16.ErrGen;
+            using System;
+
+            namespace TestNamespace;
+
+            public abstract record AppError(String Message);
+
+            [Error("Something failed")]
+            public partial record MyError : AppError;
+            """;
+
+        // Act
+        var (diagnostics, generatedSources) = GeneratorTestHelper.RunGenerator(source);
+
+        // Assert
+        Assert.Empty(diagnostics);
+        var errorSource = GeneratorTestHelper.FindGeneratedSource(
+            generatedSources,
+            "partial record MyError"
+        );
+        Assert.NotNull(errorSource);
+        Assert.DoesNotContain(": global::", errorSource);
+        Assert.Contains("base(message)", errorSource);
+        Assert.DoesNotContain("public String Message { get; private set; }", errorSource);
+    }
+
+    [Fact]
     public void Generates_String_Concat_With_Literal_And_Argument_Parts_For_Struct()
     {
         // Arrange
