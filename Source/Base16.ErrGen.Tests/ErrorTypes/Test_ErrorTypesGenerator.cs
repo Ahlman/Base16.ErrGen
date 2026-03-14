@@ -139,6 +139,8 @@ public class Test_ErrorTypesGenerator
         var errorSource = result.FindSource("CustomError.g.cs");
         Assert.NotNull(errorSource);
         Assert.Contains("namespace My.Custom.Namespace;", errorSource);
+        Assert.Contains("var message = \"Something went wrong\";", errorSource);
+        Assert.DoesNotContain("String.Concat", errorSource);
     }
 
     [Fact]

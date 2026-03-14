@@ -401,22 +401,37 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
                 cb.AppendLine($"public static {model.Name} From{namePart}({allArgs})");
                 using (cb.PushScope())
                 {
-                    cb.AppendLine($"var message = String.Concat(");
-                    foreach (var templatePart in template.Parts)
+                    if (template.Parts.Count == 1)
                     {
-                        var isLast = templatePart == template.Parts.Last();
-                        var str = templatePart switch
+                        var value = template.Parts[0] switch
                         {
                             StringTemplateLiteralPart part => $"\"{part.Value}\"",
                             StringTemplateArgumentPart part => $"{part.Name.ToCamelCase()}",
                             _ => throw new NotSupportedException(
-                                $"Template part of type '{templatePart.GetType().Name}' is not supported."
+                                $"Template part of type '{template.Parts[0].GetType().Name}' is not supported."
                             ),
                         };
-
-                        cb.AppendLineIndented($"{str}{(isLast ? "" : ",")}");
+                        cb.AppendLine($"var message = {value};");
                     }
-                    cb.AppendLine(");");
+                    else
+                    {
+                        cb.AppendLine($"var message = String.Concat(");
+                        foreach (var templatePart in template.Parts)
+                        {
+                            var isLast = templatePart == template.Parts.Last();
+                            var str = templatePart switch
+                            {
+                                StringTemplateLiteralPart part => $"\"{part.Value}\"",
+                                StringTemplateArgumentPart part => $"{part.Name.ToCamelCase()}",
+                                _ => throw new NotSupportedException(
+                                    $"Template part of type '{templatePart.GetType().Name}' is not supported."
+                                ),
+                            };
+
+                            cb.AppendLineIndented($"{str}{(isLast ? "" : ",")}");
+                        }
+                        cb.AppendLine(");");
+                    }
                     cb.AppendLine();
 
                     var ctorCallArgs = baseTypeInfo?.BaseCtorCallArgs is { Length: > 0 } callArgs
