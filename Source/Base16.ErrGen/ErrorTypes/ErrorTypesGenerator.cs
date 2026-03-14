@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using Base16.ErrGen.Extensions;
+using Base16.ErrGen.Utils;
 using Base16.ErrGen.Utils.Code;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -186,7 +188,37 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
                     explicitBase = BuildBaseTypeInfo(baseType);
                 }
 
-                return (Symbol: symbol, ExplicitBase: explicitBase);
+                var isPartial = symbol.DeclaringSyntaxReferences.Any(r =>
+                    r.GetSyntax() is RecordDeclarationSyntax { Modifiers: var mods }
+                    && mods.Any(m => m.Text == "partial")
+                );
+
+#pragma warning disable IDE0072 // Populate switch
+                var accessModifier = symbol.DeclaredAccessibility switch
+                {
+                    Accessibility.Public => "public",
+                    Accessibility.Internal => "internal",
+                    _ => "public",
+                };
+#pragma warning restore IDE0072
+
+                var templateStrings = symbol
+                    .GetAttributes()
+                    .Where(x => x.AttributeClass!.ToDisplayString() == ErrorAttributeName)
+                    .Select(x => x.ConstructorArguments[0].Value)
+                    .OfType<String>()
+                    .ToImmutableArray();
+
+                return new ErrorTypeModel(
+                    symbol.Name,
+                    symbol.ToDisplayString(),
+                    symbol.ContainingNamespace.ToDisplayString(),
+                    accessModifier,
+                    symbol.TypeKind == TypeKind.Struct,
+                    isPartial,
+                    new EquatableArray<String>(templateStrings),
+                    explicitBase
+                );
             }
         );
 
@@ -205,62 +237,47 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
             combined,
             (context, pair) =>
             {
-                var (errorInfo, assemblyBase) = pair;
-                var hasExplicitBase = errorInfo.ExplicitBase is not null;
-                var effectiveBase = errorInfo.ExplicitBase ?? assemblyBase.Info;
-                GenerateErrorType(context, errorInfo.Symbol, effectiveBase, hasExplicitBase);
+                var (model, assemblyBase) = pair;
+                var hasExplicitBase = model.ExplicitBase is not null;
+                var effectiveBase = model.ExplicitBase ?? assemblyBase.Info;
+                GenerateErrorType(context, model, effectiveBase, hasExplicitBase);
             }
         );
     }
 
     private void GenerateErrorType(
         SourceProductionContext context,
-        INamedTypeSymbol errorType,
+        ErrorTypeModel model,
         ErrorBaseTypeInfo? baseTypeInfo,
         Boolean hasExplicitBase
     )
     {
-        if (
-            !errorType.DeclaringSyntaxReferences.Any(r =>
-                r.GetSyntax() is RecordDeclarationSyntax { Modifiers: var mods }
-                && mods.Any(m => m.Text == "partial")
-            )
-        )
+        if (!model.IsPartial)
         {
             context.ReportDiagnostic(
                 Diagnostic.Create(
                     ErrorDiagnostics.ErrorTypeMustBePartial,
-                    errorType.Locations.FirstOrDefault(),
-                    errorType.Name
+                    Location.None,
+                    model.Name
                 )
             );
             return;
         }
 
-#pragma warning disable IDE0072 // Populate switch
-        var accessibility = errorType.DeclaredAccessibility switch
-        {
-            Accessibility.Public => "public",
-            Accessibility.Internal => "internal",
-            _ => throw new NotSupportedException(),
-        };
-#pragma warning restore IDE0072
-
         var cb = CSharpCodeBuilder.NewFile();
 
-        var isStruct = errorType.TypeKind == TypeKind.Struct;
-        var recordType = isStruct ? "record struct" : "record";
+        var recordType = model.IsStruct ? "record struct" : "record";
 
         var baseTypeSuffix = "";
         if (baseTypeInfo is not null && !hasExplicitBase)
         {
-            if (!baseTypeInfo.IsInterface && isStruct)
+            if (!baseTypeInfo.IsInterface && model.IsStruct)
             {
                 context.ReportDiagnostic(
                     Diagnostic.Create(
                         ErrorDiagnostics.StructCannotInheritClass,
-                        errorType.Locations.FirstOrDefault(),
-                        errorType.Name,
+                        Location.None,
+                        model.Name,
                         baseTypeInfo.FullyQualifiedName
                     )
                 );
@@ -273,29 +290,21 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
             $"""
             using System;
 
-            namespace {errorType.ContainingNamespace.ToDisplayString()};
+            namespace {model.Namespace};
 
-            {accessibility} partial {recordType} {errorType.Name}{baseTypeSuffix}
+            {model.AccessModifier} partial {recordType} {model.Name}{baseTypeSuffix}
             """
         );
 
-        var errorAttributes = errorType
-            .GetAttributes()
-            .Where(x => x.AttributeClass!.ToDisplayString() == ErrorAttributeName)
-            .ToList();
-
         var errorTemplates = new List<StringTemplate>();
-        foreach (var attr in errorAttributes)
+        foreach (var templateStr in model.TemplateStrings)
         {
-            if (attr.ConstructorArguments[0].Value is not String templateStr)
-                continue;
-
             if (!StringTemplate.TryParse(templateStr, out var parsed, out var parseError))
             {
                 context.ReportDiagnostic(
                     Diagnostic.Create(
                         ErrorDiagnostics.InvalidTemplateSyntax,
-                        attr.ApplicationSyntaxReference?.GetSyntax().GetLocation(),
+                        Location.None,
                         parseError
                     )
                 );
@@ -308,29 +317,15 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
         var factoryNames = new HashSet<String>();
         foreach (var template in errorTemplates)
         {
-            var arguments = template
-                .Parts.OfType<StringTemplateArgumentPart>()
-                .DistinctBy(x => x.Name)
-                .ToList();
-
-            var namePart = arguments.Count switch
-            {
-                0 => String.Empty,
-                1 => arguments[0].Name,
-                _ => String.Concat([
-                    .. arguments.Select(x => x.Name).Take(arguments.Count - 1),
-                    "And",
-                    arguments.Last().Name,
-                ]),
-            };
+            var namePart = GetFactoryMethodName(template);
 
             if (!factoryNames.Add(namePart))
             {
                 context.ReportDiagnostic(
                     Diagnostic.Create(
                         ErrorDiagnostics.DuplicateFactoryMethod,
-                        errorType.Locations.FirstOrDefault(),
-                        errorType.Name,
+                        Location.None,
+                        model.Name,
                         namePart
                     )
                 );
@@ -357,14 +352,14 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
                 cb.AppendLine();
             }
 
-            var ctorAccess = isStruct ? "public" : "private";
+            var ctorAccess = model.IsStruct ? "public" : "private";
             var ctorParams = baseTypeInfo?.BaseCtorParamDeclarations is { Length: > 0 } paramDecl
                 ? paramDecl
                 : "";
             var baseCtorCall = baseTypeInfo?.BaseCtorCallArgs is { Length: > 0 } baseCallArgs
                 ? $" : base({baseCallArgs})"
                 : "";
-            cb.AppendLine($"{ctorAccess} {errorType.Name}({ctorParams}){baseCtorCall} {{ }}");
+            cb.AppendLine($"{ctorAccess} {model.Name}({ctorParams}){baseCtorCall} {{ }}");
             cb.AppendLine();
 
             foreach (var template in errorTemplates)
@@ -374,16 +369,7 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
                     .DistinctBy(x => x.Name)
                     .ToList();
 
-                var namePart = arguments.Count switch
-                {
-                    0 => String.Empty,
-                    1 => arguments[0].Name,
-                    _ => String.Concat([
-                        .. arguments.Select(x => x.Name).Take(arguments.Count - 1),
-                        "And",
-                        arguments.Last().Name,
-                    ]),
-                };
+                var namePart = GetFactoryMethodName(template);
 
                 var templateArgs = arguments.Select(x =>
                     $"{x.Type ?? "Object?"} {x.Name.ToCamelCase()}"
@@ -394,7 +380,7 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
                     : String.Join(", ", templateArgs);
 
                 cb.AppendLine();
-                cb.AppendLine($"public static {errorType.Name} From{namePart}({allArgs})");
+                cb.AppendLine($"public static {model.Name} From{namePart}({allArgs})");
                 using (cb.PushScope())
                 {
                     cb.AppendLine($"var message = String.Concat(");
@@ -418,7 +404,7 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
                     var ctorCallArgs = baseTypeInfo?.BaseCtorCallArgs is { Length: > 0 } callArgs
                         ? callArgs
                         : "";
-                    cb.AppendLine($"return new {errorType.Name}({ctorCallArgs})");
+                    cb.AppendLine($"return new {model.Name}({ctorCallArgs})");
                     using (cb.PushScopeExpression())
                     {
                         if (String.IsNullOrEmpty(ctorCallArgs))
@@ -430,7 +416,28 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
             }
         }
 
-        context.AddSource($"{errorType.ToDisplayString()}.g.cs", cb.ToString());
+        context.AddSource($"{model.FullName}.g.cs", cb.ToString());
+    }
+
+    private static String GetFactoryMethodName(StringTemplate template)
+    {
+        var arguments = template
+            .Parts.OfType<StringTemplateArgumentPart>()
+            .DistinctBy(x => x.Name)
+            .ToList();
+
+        return arguments.Count switch
+        {
+            0 => String.Empty,
+            1 => arguments[0].Name,
+            _ => String.Concat(
+                [
+                    .. arguments.Select(x => x.Name).Take(arguments.Count - 1),
+                    "And",
+                    arguments.Last().Name,
+                ]
+            ),
+        };
     }
 
     private static IPropertySymbol? FindPropertyInHierarchy(
