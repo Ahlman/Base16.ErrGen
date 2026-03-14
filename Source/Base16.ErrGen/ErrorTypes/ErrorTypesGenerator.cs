@@ -207,7 +207,7 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
                 var (errorInfo, assemblyBase) = pair;
                 var hasExplicitBase = errorInfo.ExplicitBase is not null;
                 var effectiveBase = errorInfo.ExplicitBase ?? assemblyBase.Info;
-                GenerateExtensionsForSuccessResults(
+                GenerateErrorType(
                     context,
                     errorInfo.Symbol,
                     effectiveBase,
@@ -217,7 +217,7 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
         );
     }
 
-    private void GenerateExtensionsForSuccessResults(
+    private void GenerateErrorType(
         SourceProductionContext context,
         INamedTypeSymbol errorType,
         ErrorBaseTypeInfo? baseTypeInfo,
@@ -225,7 +225,7 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
     )
     {
 #pragma warning disable IDE0072 // Populate switch
-        var accessability = errorType.DeclaredAccessibility switch
+        var accessibility = errorType.DeclaredAccessibility switch
         {
             Accessibility.Public => "public",
             Accessibility.Internal => "internal",
@@ -262,7 +262,7 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
 
             namespace {errorType.ContainingNamespace.ToDisplayString()};
 
-            {accessability} partial {recordType} {errorType.Name}{baseTypeSuffix}
+            {accessibility} partial {recordType} {errorType.Name}{baseTypeSuffix}
             """
         );
 
