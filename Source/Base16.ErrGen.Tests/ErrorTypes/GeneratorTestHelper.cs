@@ -2,15 +2,13 @@ using System.Collections.Immutable;
 using Base16.ErrGen.ErrorTypes;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Xunit;
 
 namespace Base16.ErrGen.Tests.ErrorTypes;
 
 internal static class GeneratorTestHelper
 {
-    public static (
-        ImmutableArray<Diagnostic> Diagnostics,
-        GeneratedSource[] GeneratedSources
-    ) RunGenerator(String source)
+    public static GeneratorResult RunGenerator(String source)
     {
         var syntaxTree = CSharpSyntaxTree.ParseText(source);
 
@@ -48,12 +46,34 @@ internal static class GeneratorTestHelper
             .AddRange(runResult.Diagnostics)
             .AddRange(runResult.Results.SelectMany(r => r.Diagnostics));
 
-        return (allDiagnostics, generatedSources);
+        var compilationErrors = outputCompilation
+            .GetDiagnostics()
+            .Where(d => d.Severity == DiagnosticSeverity.Error)
+            .ToImmutableArray();
+
+        return new GeneratorResult(allDiagnostics, compilationErrors, generatedSources);
+    }
+}
+
+internal sealed record GeneratorResult(
+    ImmutableArray<Diagnostic> Diagnostics,
+    ImmutableArray<Diagnostic> CompilationErrors,
+    GeneratedSource[] GeneratedSources
+)
+{
+    /// <summary>
+    ///     Asserts that the generator produced no diagnostics and that the
+    ///     generated code compiles without errors.
+    /// </summary>
+    public void AssertNoErrors()
+    {
+        Assert.Empty(Diagnostics);
+        Assert.Empty(CompilationErrors);
     }
 
-    public static String? FindGeneratedSource(GeneratedSource[] sources, String hintNamePart)
+    public String? FindSource(String hintNamePart)
     {
-        return sources.FirstOrDefault(s => s.HintName.Contains(hintNamePart))?.Content;
+        return GeneratedSources.FirstOrDefault(s => s.HintName.Contains(hintNamePart))?.Content;
     }
 }
 

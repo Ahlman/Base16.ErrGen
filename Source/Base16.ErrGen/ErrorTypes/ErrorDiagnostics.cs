@@ -66,4 +66,13 @@ internal static class ErrorDiagnostics
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true
     );
+
+    public static readonly DiagnosticDescriptor BaseTypeMustBeRecord = new(
+        id: "ERR008",
+        title: "Base class must be a record",
+        messageFormat: "ErrorBaseType: class '{0}' must be a record — records cannot inherit from non-record classes",
+        category: "Base16.ErrGen",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true
+    );
 }

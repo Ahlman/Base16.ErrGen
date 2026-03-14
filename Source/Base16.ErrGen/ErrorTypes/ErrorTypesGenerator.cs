@@ -83,6 +83,18 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
                     );
                 }
 
+                if (typeSymbol.TypeKind == TypeKind.Class && !typeSymbol.IsRecord)
+                {
+                    return (
+                        Info: null,
+                        Diagnostic: Diagnostic.Create(
+                            ErrorDiagnostics.BaseTypeMustBeRecord,
+                            attr.ApplicationSyntaxReference?.GetSyntax(ct).GetLocation(),
+                            typeSymbol.ToDisplayString()
+                        )
+                    );
+                }
+
                 var messageProperty = FindPropertyInHierarchy(typeSymbol, "Message");
 
                 if (
@@ -297,7 +309,7 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
 
         using (cb.PushScope())
         {
-            var skipMessage = baseTypeInfo?.HasMessageProperty == true;
+            var skipMessage = baseTypeInfo is { HasMessageProperty: true, IsInterface: false };
             if (!skipMessage)
                 cb.AppendLine("public String Message { get; private set; } = default!;");
             cb.AppendLine();
@@ -436,13 +448,11 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
         {
             0 => String.Empty,
             1 => arguments[0].Name,
-            _ => String.Concat(
-                [
-                    .. arguments.Select(x => x.Name).Take(arguments.Count - 1),
-                    "And",
-                    arguments.Last().Name,
-                ]
-            ),
+            _ => String.Concat([
+                .. arguments.Select(x => x.Name).Take(arguments.Count - 1),
+                "And",
+                arguments.Last().Name,
+            ]),
         };
     }
 
