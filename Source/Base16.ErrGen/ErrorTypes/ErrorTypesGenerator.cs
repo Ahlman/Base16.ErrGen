@@ -305,6 +305,39 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
             errorTemplates.Add(parsed!);
         }
 
+        var factoryNames = new HashSet<String>();
+        foreach (var template in errorTemplates)
+        {
+            var arguments = template
+                .Parts.OfType<StringTemplateArgumentPart>()
+                .DistinctBy(x => x.Name)
+                .ToList();
+
+            var namePart = arguments.Count switch
+            {
+                0 => String.Empty,
+                1 => arguments[0].Name,
+                _ => String.Concat([
+                    .. arguments.Select(x => x.Name).Take(arguments.Count - 1),
+                    "And",
+                    arguments.Last().Name,
+                ]),
+            };
+
+            if (!factoryNames.Add(namePart))
+            {
+                context.ReportDiagnostic(
+                    Diagnostic.Create(
+                        ErrorDiagnostics.DuplicateFactoryMethod,
+                        errorType.Locations.FirstOrDefault(),
+                        errorType.Name,
+                        namePart
+                    )
+                );
+                return;
+            }
+        }
+
         using (cb.PushScope())
         {
             var skipMessage = baseTypeInfo?.HasMessageProperty == true;

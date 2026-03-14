@@ -882,4 +882,25 @@ public class Test_ErrorTypesGenerator
         // Assert
         Assert.Contains(diagnostics, d => d.Id == "ERR006");
     }
+
+    [Fact]
+    public void Duplicate_Factory_Method_Names_Emits_ERR007()
+    {
+        // Arrange
+        var source = """
+            using Base16.ErrGen;
+
+            namespace TestNamespace;
+
+            [Error("First error about {Name:String}")]
+            [Error("Second error about {Name:String}")]
+            public partial record MyError;
+            """;
+
+        // Act
+        var (diagnostics, _) = GeneratorTestHelper.RunGenerator(source);
+
+        // Assert
+        Assert.Contains(diagnostics, d => d.Id == "ERR007");
+    }
 }

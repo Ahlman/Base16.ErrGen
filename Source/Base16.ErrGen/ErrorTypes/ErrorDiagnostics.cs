@@ -57,4 +57,13 @@ internal static class ErrorDiagnostics
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true
     );
+
+    public static readonly DiagnosticDescriptor DuplicateFactoryMethod = new(
+        id: "ERR007",
+        title: "Duplicate factory method name",
+        messageFormat: "Error type '{0}' would generate duplicate factory method 'From{1}'",
+        category: "Base16.ErrGen",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true
+    );
 }
