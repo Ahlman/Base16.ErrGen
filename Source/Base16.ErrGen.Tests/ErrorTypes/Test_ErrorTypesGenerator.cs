@@ -654,6 +654,127 @@ public class Test_ErrorTypesGenerator
     }
 
     [Fact]
+    public async Task Empty_Template_Generates_Parameterless_Factory()
+    {
+        // Arrange
+        var source = """
+            using Base16.ErrGen;
+
+            namespace TestNamespace;
+
+            [Error("")]
+            public partial record EmptyError;
+            """;
+
+        // Act
+        var result = GeneratorTestHelper.RunGenerator(source);
+
+        // Assert
+        await VerifyGeneratedSource(result, "EmptyError.g.cs");
+    }
+
+    [Fact]
+    public async Task Whitespace_Only_Template_Generates_Parameterless_Factory()
+    {
+        // Arrange
+        var source = """
+            using Base16.ErrGen;
+
+            namespace TestNamespace;
+
+            [Error("   ")]
+            public partial record WhitespaceError;
+            """;
+
+        // Act
+        var result = GeneratorTestHelper.RunGenerator(source);
+
+        // Assert
+        await VerifyGeneratedSource(result, "WhitespaceError.g.cs");
+    }
+
+    [Fact]
+    public async Task Template_With_Duplicate_Argument_Name_Generates_Single_Property()
+    {
+        // Arrange — same argument appears twice in the template
+        var source = """
+            using Base16.ErrGen;
+
+            namespace TestNamespace;
+
+            [Error("Expected {Value:String} but got {Value:String} again")]
+            public partial record DuplicateArgError;
+            """;
+
+        // Act
+        var result = GeneratorTestHelper.RunGenerator(source);
+
+        // Assert
+        await VerifyGeneratedSource(result, "DuplicateArgError.g.cs");
+    }
+
+    [Fact]
+    public async Task Template_With_Special_Characters_Escapes_Xml_In_Docs()
+    {
+        // Arrange — template contains characters that need XML escaping
+        var source = """
+            using Base16.ErrGen;
+
+            namespace TestNamespace;
+
+            [Error("Expected {X:Int32} < {Y:Int32} && {X:Int32} > 0")]
+            public partial record ComparisonError;
+            """;
+
+        // Act
+        var result = GeneratorTestHelper.RunGenerator(source);
+
+        // Assert
+        await VerifyGeneratedSource(result, "ComparisonError.g.cs");
+    }
+
+    [Fact]
+    public async Task Template_With_Many_Arguments_Generates_Correct_Factory_Name()
+    {
+        // Arrange — 4 arguments should produce FromABCAndD
+        var source = """
+            using Base16.ErrGen;
+
+            namespace TestNamespace;
+
+            [Error("{A:String} {B:String} {C:String} {D:String}")]
+            public partial record ManyArgsError;
+            """;
+
+        // Act
+        var result = GeneratorTestHelper.RunGenerator(source);
+
+        // Assert
+        await VerifyGeneratedSource(result, "ManyArgsError.g.cs");
+    }
+
+    [Fact]
+    public async Task Multiple_Attributes_Sharing_Arguments_Generates_Shared_Properties()
+    {
+        // Arrange — both templates use Host but different additional args
+        var source = """
+            using Base16.ErrGen;
+
+            namespace TestNamespace;
+
+            [Error("Connection to '{Host:String}' timed out after {TimeoutMs:Int32}ms")]
+            [Error("Connection to '{Host:String}' was refused on port {Port:Int32}")]
+            public partial record ConnectionError;
+            """;
+
+        // Act
+        var result = GeneratorTestHelper.RunGenerator(source);
+
+        // Assert
+        await VerifyGeneratedSource(result, "ConnectionError.g.cs");
+    }
+
+    [Fact]
     public void NonPartial_Record_Emits_ERR005()
     {
         // Arrange

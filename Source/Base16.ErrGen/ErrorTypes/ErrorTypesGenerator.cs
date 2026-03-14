@@ -458,7 +458,11 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
 
     private static void EmitMessageAssignment(CSharpCodeBuilder cb, StringTemplate template)
     {
-        if (template.Parts.Count == 1)
+        if (template.Parts.Count == 0)
+        {
+            cb.AppendLine("var message = \"\";");
+        }
+        else if (template.Parts.Count == 1)
         {
             var value = template.Parts[0] switch
             {
