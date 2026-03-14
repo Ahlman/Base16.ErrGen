@@ -485,28 +485,7 @@ public class Test_ErrorTypesGenerator
     }
 
     [Fact]
-    public void BaseType_Abstract_Class_Emits_ERR003()
-    {
-        var source = """
-            using Base16.ErrGen;
-
-            [assembly: ErrorBaseType(typeof(TestNamespace.MyBaseError))]
-
-            namespace TestNamespace;
-
-            public abstract class MyBaseError { }
-
-            [Error("Something went wrong")]
-            public partial record MyError;
-            """;
-
-        var (diagnostics, generatedSources) = GeneratorTestHelper.RunGenerator(source);
-
-        Assert.Contains(diagnostics, d => d.Id == "ERR003");
-    }
-
-    [Fact]
-    public void BaseType_Generic_Type_Emits_ERR004()
+    public void BaseType_Generic_Type_Emits_ERR003()
     {
         var source = """
             using Base16.ErrGen;
@@ -523,11 +502,11 @@ public class Test_ErrorTypesGenerator
 
         var (diagnostics, generatedSources) = GeneratorTestHelper.RunGenerator(source);
 
-        Assert.Contains(diagnostics, d => d.Id == "ERR004");
+        Assert.Contains(diagnostics, d => d.Id == "ERR003");
     }
 
     [Fact]
-    public void BaseType_NonString_Message_Emits_ERR005()
+    public void BaseType_NonString_Message_Emits_ERR004()
     {
         var source = """
             using Base16.ErrGen;
@@ -548,7 +527,7 @@ public class Test_ErrorTypesGenerator
 
         var (diagnostics, generatedSources) = GeneratorTestHelper.RunGenerator(source);
 
-        Assert.Contains(diagnostics, d => d.Id == "ERR005");
+        Assert.Contains(diagnostics, d => d.Id == "ERR004");
     }
 
     [Fact]

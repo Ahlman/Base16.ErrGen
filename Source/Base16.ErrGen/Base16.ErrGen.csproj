@@ -33,6 +33,14 @@
     />
   </ItemGroup>
 
+  <!--
+    https://github.com/dotnet/roslyn-analyzers/blob/main/src/Microsoft.CodeAnalysis.Analyzers/ReleaseTrackingAnalyzers.Help.md
+  -->
+  <ItemGroup>
+    <AdditionalFiles Include="AnalyzerReleases.Shipped.md" />
+    <AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />
+  </ItemGroup>
+
   <!-- Declare supported target frameworks in the NuGet package -->
   <ItemGroup>
     <None Include="buildTransitive\_._ " Pack="true" PackagePath="lib/net472" />

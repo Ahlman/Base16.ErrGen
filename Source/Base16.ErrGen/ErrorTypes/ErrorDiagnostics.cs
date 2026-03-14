@@ -22,17 +22,8 @@ internal static class ErrorDiagnostics
         isEnabledByDefault: true
     );
 
-    public static readonly DiagnosticDescriptor AbstractBaseType = new(
-        id: "ERR003",
-        title: "Abstract base type not allowed",
-        messageFormat: "ErrorBaseType: '{0}' must not be abstract",
-        category: "Base16.ErrGen",
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true
-    );
-
     public static readonly DiagnosticDescriptor GenericBaseType = new(
-        id: "ERR004",
+        id: "ERR003",
         title: "Generic base type not allowed",
         messageFormat: "ErrorBaseType: '{0}' must not be a generic type",
         category: "Base16.ErrGen",
@@ -41,7 +32,7 @@ internal static class ErrorDiagnostics
     );
 
     public static readonly DiagnosticDescriptor MessagePropertyNotString = new(
-        id: "ERR005",
+        id: "ERR004",
         title: "Message property must be String",
         messageFormat: "ErrorBaseType: '{0}.Message' must be of type String",
         category: "Base16.ErrGen",

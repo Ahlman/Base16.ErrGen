@@ -133,18 +133,6 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
                     );
                 }
 
-                if (typeSymbol.IsAbstract && typeSymbol.TypeKind == TypeKind.Class)
-                {
-                    return (
-                        Info: null,
-                        Diagnostic: Diagnostic.Create(
-                            ErrorDiagnostics.AbstractBaseType,
-                            attr.ApplicationSyntaxReference?.GetSyntax(ct).GetLocation(),
-                            typeSymbol.ToDisplayString()
-                        )
-                    );
-                }
-
                 if (typeSymbol.IsGenericType)
                 {
                     return (
