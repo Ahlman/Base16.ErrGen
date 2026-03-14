@@ -32,9 +32,9 @@ Base16.ErrGen generates a `Message` property, typed properties for each template
 // Generated code
 public partial record struct UserNotFoundError
 {
-    public String Message { get; private set; } = default!;
-    public String Name { get; private set; } = default!;
-    public Int32 Id { get; private set; } = default!;
+    public String Message { get; private init; } = default!;
+    public String Name { get; private init; } = default!;
+    public Int32 Id { get; private init; } = default!;
 
     public UserNotFoundError() { }
 
