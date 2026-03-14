@@ -182,11 +182,11 @@ The generated constructor chains to the base record's constructor:
 ```csharp
 public partial record MyError : global::Error
 {
-    private MyError(string message) : base(message) { }
+    private MyError(String message) : base(message) { }
 
     public static MyError From()
     {
-        var message = String.Concat("Something went wrong");
+        var message = "Something went wrong";
         return new MyError(message);
     }
 }
