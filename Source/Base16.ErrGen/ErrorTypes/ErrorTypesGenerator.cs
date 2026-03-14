@@ -311,7 +311,7 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
         {
             var skipMessage = baseTypeInfo is { HasMessageProperty: true, IsInterface: false };
             if (!skipMessage)
-                cb.AppendLine("public String Message { get; private set; } = default!;");
+                cb.AppendLine("public String Message { get; private init; } = default!;");
             cb.AppendLine();
             var templates = errorTemplates
                 .SelectMany(x => x.Parts)
@@ -321,7 +321,7 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
             foreach (var template in templates)
             {
                 cb.AppendLine(
-                    $"public {template.Type ?? "Object?"} {template.Name} {{ get; private set; }} = default!;"
+                    $"public {template.Type ?? "Object?"} {template.Name} {{ get; private init; }} = default!;"
                 );
                 cb.AppendLine();
             }

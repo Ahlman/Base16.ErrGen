@@ -41,7 +41,7 @@ public class Test_ErrorTypesGenerator
         var errorSource = result.FindSource("UserNotFoundError.g.cs");
         Assert.NotNull(errorSource);
         Assert.Contains("public static UserNotFoundError FromName(Object? name)", errorSource);
-        Assert.Contains("public String Message { get; private set; }", errorSource);
+        Assert.Contains("public String Message { get; private init; }", errorSource);
     }
 
     [Fact]
@@ -324,7 +324,7 @@ public class Test_ErrorTypesGenerator
         result.AssertNoErrors();
         var errorSource = result.FindSource("MyError.g.cs");
         Assert.NotNull(errorSource);
-        Assert.Contains("public String Message { get; private set; }", errorSource);
+        Assert.Contains("public String Message { get; private init; }", errorSource);
     }
 
     [Fact]
@@ -351,7 +351,7 @@ public class Test_ErrorTypesGenerator
         result.AssertNoErrors();
         var errorSource = result.FindSource("MyError.g.cs");
         Assert.NotNull(errorSource);
-        Assert.Contains("public String Message { get; private set; }", errorSource);
+        Assert.Contains("public String Message { get; private init; }", errorSource);
     }
 
     [Fact]
@@ -408,7 +408,7 @@ public class Test_ErrorTypesGenerator
         var errorSource = result.FindSource("MyError.g.cs");
         Assert.NotNull(errorSource);
         Assert.Contains(": global::TestNamespace.Error", errorSource);
-        Assert.DoesNotContain("public String Message { get; private set; }", errorSource);
+        Assert.DoesNotContain("public String Message { get; private init; }", errorSource);
         Assert.Contains("base(message)", errorSource);
     }
 
@@ -473,7 +473,7 @@ public class Test_ErrorTypesGenerator
         );
         Assert.Contains("FromAnswer(global::System.Guid userId, Int32 answer)", errorSource);
         Assert.Contains("new InvalidAnswer(message, userId)", errorSource);
-        Assert.DoesNotContain("public String Message { get; private set; }", errorSource);
+        Assert.DoesNotContain("public String Message { get; private init; }", errorSource);
     }
 
     [Fact]
@@ -500,7 +500,7 @@ public class Test_ErrorTypesGenerator
         result.AssertNoErrors();
         var errorSource = result.FindSource("AuthError.g.cs");
         Assert.NotNull(errorSource);
-        Assert.DoesNotContain("public String Message { get; private set; }", errorSource);
+        Assert.DoesNotContain("public String Message { get; private init; }", errorSource);
         Assert.Contains("base(message, traceId)", errorSource);
     }
 
@@ -568,7 +568,7 @@ public class Test_ErrorTypesGenerator
         Assert.NotNull(errorSource);
         Assert.DoesNotContain(": global::", errorSource);
         Assert.Contains("base(message)", errorSource);
-        Assert.DoesNotContain("public String Message { get; private set; }", errorSource);
+        Assert.DoesNotContain("public String Message { get; private init; }", errorSource);
     }
 
     [Fact]
@@ -718,7 +718,7 @@ public class Test_ErrorTypesGenerator
         result.AssertNoErrors();
         var errorSource = result.FindSource("UserNotFoundError.g.cs");
         Assert.NotNull(errorSource);
-        Assert.Contains("public String Message { get; private set; }", errorSource);
+        Assert.Contains("public String Message { get; private init; }", errorSource);
         Assert.Contains("public static UserNotFoundError FromName(String name)", errorSource);
     }
 
