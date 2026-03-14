@@ -17,7 +17,7 @@ public class Test_ErrorTypesGenerator
         Assert.Empty(diagnostics);
         var attributeSource = GeneratorTestHelper.FindGeneratedSource(
             generatedSources,
-            "class ErrorAttribute"
+            "ErrorAttribute.g.cs"
         );
         Assert.NotNull(attributeSource);
         Assert.Contains("AllowMultiple = true", attributeSource);
@@ -43,7 +43,7 @@ public class Test_ErrorTypesGenerator
         Assert.Empty(diagnostics);
         var errorSource = GeneratorTestHelper.FindGeneratedSource(
             generatedSources,
-            "partial record UserNotFoundError"
+            "UserNotFoundError.g.cs"
         );
         Assert.NotNull(errorSource);
         Assert.Contains("public static UserNotFoundError FromName(Object? name)", errorSource);
@@ -70,7 +70,7 @@ public class Test_ErrorTypesGenerator
         Assert.Empty(diagnostics);
         var errorSource = GeneratorTestHelper.FindGeneratedSource(
             generatedSources,
-            "partial record UserNotFoundError"
+            "UserNotFoundError.g.cs"
         );
         Assert.NotNull(errorSource);
         Assert.Contains("public static UserNotFoundError FromName(String name)", errorSource);
@@ -96,7 +96,7 @@ public class Test_ErrorTypesGenerator
         Assert.Empty(diagnostics);
         var errorSource = GeneratorTestHelper.FindGeneratedSource(
             generatedSources,
-            "partial record HttpError"
+            "HttpError.g.cs"
         );
         Assert.NotNull(errorSource);
         Assert.Contains(
@@ -126,7 +126,7 @@ public class Test_ErrorTypesGenerator
         Assert.Empty(diagnostics);
         var errorSource = GeneratorTestHelper.FindGeneratedSource(
             generatedSources,
-            "partial record UserNotFoundError"
+            "UserNotFoundError.g.cs"
         );
         Assert.NotNull(errorSource);
         Assert.Contains("public static UserNotFoundError FromName(String name)", errorSource);
@@ -153,7 +153,7 @@ public class Test_ErrorTypesGenerator
         Assert.Empty(diagnostics);
         var errorSource = GeneratorTestHelper.FindGeneratedSource(
             generatedSources,
-            "partial record CustomError"
+            "CustomError.g.cs"
         );
         Assert.NotNull(errorSource);
         Assert.Contains("namespace My.Custom.Namespace;", errorSource);
@@ -179,7 +179,7 @@ public class Test_ErrorTypesGenerator
         Assert.Empty(diagnostics);
         var errorSource = GeneratorTestHelper.FindGeneratedSource(
             generatedSources,
-            "partial record InternalError"
+            "InternalError.g.cs"
         );
         Assert.NotNull(errorSource);
         Assert.Contains("internal partial record InternalError", errorSource);
@@ -205,7 +205,7 @@ public class Test_ErrorTypesGenerator
         Assert.Empty(diagnostics);
         var errorSource = GeneratorTestHelper.FindGeneratedSource(
             generatedSources,
-            "partial record GreetingError"
+            "GreetingError.g.cs"
         );
         Assert.NotNull(errorSource);
         Assert.Contains("String.Concat(", errorSource);
@@ -227,7 +227,7 @@ public class Test_ErrorTypesGenerator
         Assert.Empty(diagnostics);
         var attributeSource = GeneratorTestHelper.FindGeneratedSource(
             generatedSources,
-            "class ErrorBaseTypeAttribute"
+            "ErrorBaseTypeAttribute.g.cs"
         );
         Assert.NotNull(attributeSource);
         Assert.Contains("System.AttributeTargets.Assembly", attributeSource);
@@ -261,10 +261,7 @@ public class Test_ErrorTypesGenerator
 
         // Assert
         Assert.Empty(diagnostics);
-        var errorSource = GeneratorTestHelper.FindGeneratedSource(
-            generatedSources,
-            "partial record MyError"
-        );
+        var errorSource = GeneratorTestHelper.FindGeneratedSource(generatedSources, "MyError.g.cs");
         Assert.NotNull(errorSource);
         Assert.Contains(
             "public partial record MyError : global::TestNamespace.IMyError",
@@ -294,10 +291,7 @@ public class Test_ErrorTypesGenerator
 
         // Assert
         Assert.Empty(diagnostics);
-        var errorSource = GeneratorTestHelper.FindGeneratedSource(
-            generatedSources,
-            "partial record struct MyError"
-        );
+        var errorSource = GeneratorTestHelper.FindGeneratedSource(generatedSources, "MyError.g.cs");
         Assert.NotNull(errorSource);
         Assert.Contains(
             "public partial record struct MyError : global::TestNamespace.IMyError",
@@ -327,10 +321,7 @@ public class Test_ErrorTypesGenerator
 
         // Assert
         Assert.Empty(diagnostics);
-        var errorSource = GeneratorTestHelper.FindGeneratedSource(
-            generatedSources,
-            "partial record MyError"
-        );
+        var errorSource = GeneratorTestHelper.FindGeneratedSource(generatedSources, "MyError.g.cs");
         Assert.NotNull(errorSource);
         Assert.Contains(
             "public partial record MyError : global::TestNamespace.MyBaseError",
@@ -364,10 +355,7 @@ public class Test_ErrorTypesGenerator
 
         // Assert
         Assert.Empty(diagnostics);
-        var errorSource = GeneratorTestHelper.FindGeneratedSource(
-            generatedSources,
-            "partial record MyError"
-        );
+        var errorSource = GeneratorTestHelper.FindGeneratedSource(generatedSources, "MyError.g.cs");
         Assert.NotNull(errorSource);
         Assert.DoesNotContain("public String Message { get; private set; }", errorSource);
     }
@@ -394,10 +382,7 @@ public class Test_ErrorTypesGenerator
 
         // Assert
         Assert.Empty(diagnostics);
-        var errorSource = GeneratorTestHelper.FindGeneratedSource(
-            generatedSources,
-            "partial record MyError"
-        );
+        var errorSource = GeneratorTestHelper.FindGeneratedSource(generatedSources, "MyError.g.cs");
         Assert.NotNull(errorSource);
         Assert.Contains("public String Message { get; private set; }", errorSource);
     }
@@ -428,10 +413,7 @@ public class Test_ErrorTypesGenerator
 
         // Assert
         Assert.Empty(diagnostics);
-        var errorSource = GeneratorTestHelper.FindGeneratedSource(
-            generatedSources,
-            "partial record MyError"
-        );
+        var errorSource = GeneratorTestHelper.FindGeneratedSource(generatedSources, "MyError.g.cs");
         Assert.NotNull(errorSource);
         Assert.DoesNotContain("public String Message { get; private set; }", errorSource);
     }
@@ -459,10 +441,7 @@ public class Test_ErrorTypesGenerator
 
         // Assert
         Assert.Empty(diagnostics);
-        var errorSource = GeneratorTestHelper.FindGeneratedSource(
-            generatedSources,
-            "partial record MyError"
-        );
+        var errorSource = GeneratorTestHelper.FindGeneratedSource(generatedSources, "MyError.g.cs");
         Assert.NotNull(errorSource);
         Assert.Contains(": global::TestNamespace.Error", errorSource);
         Assert.DoesNotContain("public String Message { get; private set; }", errorSource);
@@ -494,7 +473,7 @@ public class Test_ErrorTypesGenerator
         Assert.Empty(diagnostics);
         var errorSource = GeneratorTestHelper.FindGeneratedSource(
             generatedSources,
-            "partial record InvalidAnswer"
+            "InvalidAnswer.g.cs"
         );
         Assert.NotNull(errorSource);
         Assert.Contains(
@@ -530,7 +509,7 @@ public class Test_ErrorTypesGenerator
         Assert.Empty(diagnostics);
         var errorSource = GeneratorTestHelper.FindGeneratedSource(
             generatedSources,
-            "partial record AuthError"
+            "AuthError.g.cs"
         );
         Assert.NotNull(errorSource);
         Assert.DoesNotContain("public String Message { get; private set; }", errorSource);
@@ -567,14 +546,14 @@ public class Test_ErrorTypesGenerator
 
         var defaultSource = GeneratorTestHelper.FindGeneratedSource(
             generatedSources,
-            "partial record UsesDefault"
+            "UsesDefault.g.cs"
         );
         Assert.NotNull(defaultSource);
         Assert.Contains(": global::TestNamespace.DefaultError", defaultSource);
 
         var explicitSource = GeneratorTestHelper.FindGeneratedSource(
             generatedSources,
-            "partial record UsesExplicit"
+            "UsesExplicit.g.cs"
         );
         Assert.NotNull(explicitSource);
         Assert.DoesNotContain(": global::", explicitSource);
@@ -603,10 +582,7 @@ public class Test_ErrorTypesGenerator
 
         // Assert
         Assert.Empty(diagnostics);
-        var errorSource = GeneratorTestHelper.FindGeneratedSource(
-            generatedSources,
-            "partial record MyError"
-        );
+        var errorSource = GeneratorTestHelper.FindGeneratedSource(generatedSources, "MyError.g.cs");
         Assert.NotNull(errorSource);
         Assert.DoesNotContain(": global::", errorSource);
         Assert.Contains("base(message)", errorSource);
@@ -633,7 +609,7 @@ public class Test_ErrorTypesGenerator
         Assert.Empty(diagnostics);
         var errorSource = GeneratorTestHelper.FindGeneratedSource(
             generatedSources,
-            "partial record struct GreetingError"
+            "GreetingError.g.cs"
         );
         Assert.NotNull(errorSource);
         Assert.Contains("String.Concat(", errorSource);
@@ -762,7 +738,7 @@ public class Test_ErrorTypesGenerator
         Assert.Empty(diagnostics);
         var errorSource = GeneratorTestHelper.FindGeneratedSource(
             generatedSources,
-            "partial record UserNotFoundError"
+            "UserNotFoundError.g.cs"
         );
         Assert.NotNull(errorSource);
         Assert.Contains("public String Message { get; private set; }", errorSource);
@@ -795,10 +771,7 @@ public class Test_ErrorTypesGenerator
 
         // Assert
         Assert.Empty(diagnostics);
-        var errorSource = GeneratorTestHelper.FindGeneratedSource(
-            generatedSources,
-            "partial record MyError"
-        );
+        var errorSource = GeneratorTestHelper.FindGeneratedSource(generatedSources, "MyError.g.cs");
         Assert.NotNull(errorSource);
         Assert.Contains("global::Other.Namespace.IMyError", errorSource);
     }

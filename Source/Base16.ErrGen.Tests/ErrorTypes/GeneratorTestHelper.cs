@@ -7,9 +7,10 @@ namespace Base16.ErrGen.Tests.ErrorTypes;
 
 internal static class GeneratorTestHelper
 {
-    public static (ImmutableArray<Diagnostic> Diagnostics, String[] GeneratedSources) RunGenerator(
-        String source
-    )
+    public static (
+        ImmutableArray<Diagnostic> Diagnostics,
+        GeneratedSource[] GeneratedSources
+    ) RunGenerator(String source)
     {
         var syntaxTree = CSharpSyntaxTree.ParseText(source);
 
@@ -39,7 +40,8 @@ internal static class GeneratorTestHelper
         var runResult = driver.GetRunResult();
 
         var generatedSources = runResult
-            .GeneratedTrees.Select(t => t.GetText().ToString())
+            .Results.SelectMany(r => r.GeneratedSources)
+            .Select(s => new GeneratedSource(s.HintName, s.SourceText.ToString()))
             .ToArray();
 
         var allDiagnostics = diagnostics
@@ -49,10 +51,10 @@ internal static class GeneratorTestHelper
         return (allDiagnostics, generatedSources);
     }
 
-    public static String? FindGeneratedSource(String[] sources, String fileNamePart)
+    public static String? FindGeneratedSource(GeneratedSource[] sources, String hintNamePart)
     {
-        // The PostInitializationOutput sources come first, then the per-type sources.
-        // We match by checking if the source contains distinguishing content.
-        return sources.FirstOrDefault(s => s.Contains(fileNamePart));
+        return sources.FirstOrDefault(s => s.HintName.Contains(hintNamePart))?.Content;
     }
 }
+
+internal sealed record GeneratedSource(String HintName, String Content);
