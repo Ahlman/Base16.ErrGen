@@ -1,6 +1,11 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
     <PropertyGroup>
+        <Nullable>enable</Nullable>
+        <LangVersion>latest</LangVersion>
+    </PropertyGroup>
+
+    <PropertyGroup>
         <Authors>Fredrik Ahlman</Authors>
         <Company>Base16 Consulting AB</Company>
         <Copyright>Copyright © Base16 Consulting AB</Copyright>
@@ -14,14 +19,14 @@
 
     <PropertyGroup Condition="'$(Configuration)' != 'Release'">
         <VersionPrefix>99.99.99</VersionPrefix>
-        <VersionSuffix Condition="'$(BuildingInsideVisualStudio)' != 'true'">local.$([System.DateTime]::UtcNow.ToString("yyyyMMddHHmmss"))</VersionSuffix>
-        <VersionSuffix Condition="'$(BuildingInsideVisualStudio)' == 'true'">local</VersionSuffix>
+        <VersionSuffix>local</VersionSuffix>
     </PropertyGroup>
 
-    <PropertyGroup>
-        <Nullable>enable</Nullable>
-        <LangVersion>latest</LangVersion>
-    </PropertyGroup>
+    <Target Name="SetTimestampedVersion" BeforeTargets="GenerateNuspec" Condition="'$(Configuration)' != 'Release'">
+        <PropertyGroup>
+            <PackageVersion>$(VersionPrefix)-local.$([System.DateTime]::UtcNow.ToString("yyyyMMddHHmmss"))</PackageVersion>
+        </PropertyGroup>
+    </Target>
 
     <PropertyGroup>
         <!-- IDE#### only runs during build if this is true -->

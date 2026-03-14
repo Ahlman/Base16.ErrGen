@@ -29,5 +29,8 @@ jobs:
       - name: Test
         run: dotnet test --no-build --configuration Release
 
+      - name: Pack
+        run: dotnet pack --no-build --configuration Release -p:Version=${{ steps.version.outputs.version }}
+
       - name: Publish to NuGet
         run: dotnet nuget push Source/Base16.ErrGen/bin/Release/Base16.ErrGen.${{ steps.version.outputs.version }}.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
