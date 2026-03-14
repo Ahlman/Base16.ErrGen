@@ -425,7 +425,7 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
                     cb.AppendLine($"return new {model.Name}({ctorCallArgs})");
                     using (cb.PushScopeExpression())
                     {
-                        if (String.IsNullOrEmpty(ctorCallArgs))
+                        if (!skipMessage)
                             cb.AppendLine($"Message = message,");
                         foreach (var argument in arguments)
                             cb.AppendLine($"{argument.Name} = {argument.Name.ToCamelCase()},");

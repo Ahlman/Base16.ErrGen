@@ -413,6 +413,36 @@ public class Test_ErrorTypesGenerator
     }
 
     [Fact]
+    public void BaseType_Record_With_Non_Message_Ctor_Params_Still_Sets_Message()
+    {
+        // Arrange — base record has ctor params but NOT Message,
+        // so the generated type must set Message via object initializer
+        var source = """
+            using Base16.ErrGen;
+            using System;
+
+            [assembly: ErrorBaseType(typeof(TestNamespace.TracedError))]
+
+            namespace TestNamespace;
+
+            public abstract record TracedError(Guid TraceId);
+
+            [Error("Something went wrong")]
+            public partial record MyError;
+            """;
+
+        // Act
+        var result = GeneratorTestHelper.RunGenerator(source);
+
+        // Assert
+        result.AssertNoErrors();
+        var errorSource = result.FindSource("MyError.g.cs");
+        Assert.NotNull(errorSource);
+        Assert.Contains("Message = message,", errorSource);
+        Assert.Contains("base(traceId)", errorSource);
+    }
+
+    [Fact]
     public void BaseType_Abstract_Record_With_Extra_Ctor_Params_Adds_To_Factory_And_Constructor()
     {
         // Arrange
