@@ -39,4 +39,13 @@ internal static class ErrorDiagnostics
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true
     );
+
+    public static readonly DiagnosticDescriptor ErrorTypeMustBePartial = new(
+        id: "ERR005",
+        title: "Error type must be partial",
+        messageFormat: "Error type '{0}' must be declared as partial",
+        category: "Base16.ErrGen",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true
+    );
 }

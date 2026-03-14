@@ -802,4 +802,24 @@ public class Test_ErrorTypesGenerator
         Assert.NotNull(errorSource);
         Assert.Contains("global::Other.Namespace.IMyError", errorSource);
     }
+
+    [Fact]
+    public void NonPartial_Record_Emits_ERR005()
+    {
+        // Arrange
+        var source = """
+            using Base16.ErrGen;
+
+            namespace TestNamespace;
+
+            [Error("Something went wrong")]
+            public record MyError;
+            """;
+
+        // Act
+        var (diagnostics, _) = GeneratorTestHelper.RunGenerator(source);
+
+        // Assert
+        Assert.Contains(diagnostics, d => d.Id == "ERR005");
+    }
 }

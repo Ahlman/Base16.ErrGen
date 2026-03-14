@@ -207,12 +207,7 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
                 var (errorInfo, assemblyBase) = pair;
                 var hasExplicitBase = errorInfo.ExplicitBase is not null;
                 var effectiveBase = errorInfo.ExplicitBase ?? assemblyBase.Info;
-                GenerateErrorType(
-                    context,
-                    errorInfo.Symbol,
-                    effectiveBase,
-                    hasExplicitBase
-                );
+                GenerateErrorType(context, errorInfo.Symbol, effectiveBase, hasExplicitBase);
             }
         );
     }
@@ -224,6 +219,23 @@ public sealed class ErrorTypesGenerator : IIncrementalGenerator
         Boolean hasExplicitBase
     )
     {
+        if (
+            !errorType.DeclaringSyntaxReferences.Any(r =>
+                r.GetSyntax() is RecordDeclarationSyntax { Modifiers: var mods }
+                && mods.Any(m => m.Text == "partial")
+            )
+        )
+        {
+            context.ReportDiagnostic(
+                Diagnostic.Create(
+                    ErrorDiagnostics.ErrorTypeMustBePartial,
+                    errorType.Locations.FirstOrDefault(),
+                    errorType.Name
+                )
+            );
+            return;
+        }
+
 #pragma warning disable IDE0072 // Populate switch
         var accessibility = errorType.DeclaredAccessibility switch
         {
